@@ -11,12 +11,12 @@ public class Example {
     Config config = Config.builder()
             .apiUrl("http://localhost:4200")
             .branchName("develop")
-            .projectId("76f0c443-9811-4f4f-b1c2-7c01c5775d9a")
+            .projectId("003f5fcf-6c5f-4f1f-a99f-82a697711382")
             .token("F5Z2H0H2SNMXZVHX0EA4YQM1MGDD")
             .build();
 
     @Test
-    public void asdas() throws IOException, InterruptedException {
+    public void asdas() throws IOException {
         VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
 
 

@@ -1,47 +1,46 @@
 package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
+import okhttp3.*;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
 public class VisualRegressionTracker {
+    static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     Config config;
     String buildId;
-    HttpClient client;
+    OkHttpClient client;
 
     public VisualRegressionTracker(Config config) {
         this.config = config;
 
-        this.client = HttpClient.newHttpClient();
+        this.client = new OkHttpClient();
     }
 
-    void startBuild() throws IOException, InterruptedException {
+    void startBuild() throws IOException {
         if (this.buildId == null) {
             Map<String, String> data = new HashMap<>();
             data.put("projectId", this.config.projectId);
             data.put("branchName", this.config.branchName);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(this.config.apiUrl.concat("/builds")))
-                    .header("apiKey", this.config.token)
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(new Gson().toJson(data)))
+            RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
+
+            Request request = new Request.Builder()
+                    .url(this.config.apiUrl.concat("/builds"))
+                    .addHeader("apiKey", this.config.token)
+                    .post(body)
                     .build();
 
-            HttpResponse<String> response = this.client.send(request, HttpResponse.BodyHandlers.ofString());
-            BuildDTO buildDTO = new Gson().fromJson(response.body(), BuildDTO.class);
-
-            this.buildId = buildDTO.getId();
+            try (ResponseBody responseBody = client.newCall(request).execute().body()) {
+                BuildDTO buildDTO = new Gson().fromJson(responseBody.string(), BuildDTO.class);
+                this.buildId = buildDTO.getId();
+            }
         }
     }
 
-    TestResultDTO submitTestRun(TestRun testRun) throws IOException, InterruptedException {
+    TestResultDTO submitTestRun(TestRun testRun) throws IOException {
         Map<String, Object> data = new HashMap<>();
         data.put("projectId", this.config.projectId);
         data.put("buildId", this.buildId);
@@ -53,30 +52,30 @@ public class VisualRegressionTracker {
         data.put("device", testRun.getDevice());
         data.put("diffTollerancePercent", testRun.getDiffTollerancePercent());
 
+        RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(this.config.apiUrl.concat("/test")))
-                .header("apiKey", this.config.token)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(new Gson().toJson(data)))
+        Request request = new Request.Builder()
+                .url(this.config.apiUrl.concat("/test"))
+                .addHeader("apiKey", this.config.token)
+                .post(body)
                 .build();
 
-        HttpResponse<String> response = this.client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        System.out.println(response.body());
-        return new Gson().fromJson(response.body(), TestResultDTO.class);
+        try (ResponseBody responseBody = client.newCall(request).execute().body()) {
+            return new Gson().fromJson(responseBody.string(), TestResultDTO.class);
+        }
     }
 
-    public void track(TestRun testRun) throws IOException, InterruptedException {
+    public void track(TestRun testRun) throws IOException {
         this.startBuild();
 
         TestResultDTO testResultDTO = this.submitTestRun(testRun);
 
-        if(testResultDTO.getStatus().equals("new")) {
+        if (testResultDTO.getStatus().equals("new")) {
             throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
         }
 
-        if(testResultDTO.getStatus().equals("unresolved")) {
+        if (testResultDTO.getStatus().equals("unresolved")) {
             throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
         }
     }
