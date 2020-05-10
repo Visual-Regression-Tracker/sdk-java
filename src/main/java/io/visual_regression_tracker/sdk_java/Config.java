@@ -1,13 +1,11 @@
 package io.visual_regression_tracker.sdk_java;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
 
-@Builder
-@Getter
+@AllArgsConstructor
 public class Config {
     String apiUrl;
-    String branchName;
     String projectId;
     String token;
+    String branchName;
 }

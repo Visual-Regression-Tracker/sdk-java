@@ -40,17 +40,17 @@ public class VisualRegressionTracker {
         }
     }
 
-    TestResultDTO submitTestRun(TestRun testRun) throws IOException {
+    TestResultDTO submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         Map<String, Object> data = new HashMap<>();
         data.put("projectId", this.config.projectId);
         data.put("buildId", this.buildId);
-        data.put("name", testRun.getName());
-        data.put("imageBase64", testRun.getImageBase64());
-        data.put("os", testRun.getOs());
-        data.put("browser", testRun.getBrowser());
-        data.put("viewport", testRun.getViewport());
-        data.put("device", testRun.getDevice());
-        data.put("diffTollerancePercent", testRun.getDiffTollerancePercent());
+        data.put("name", name);
+        data.put("imageBase64", imageBase64);
+        data.put("os", testRunOptions.getOs());
+        data.put("browser", testRunOptions.getBrowser());
+        data.put("viewport", testRunOptions.getViewport());
+        data.put("device", testRunOptions.getDevice());
+        data.put("diffTollerancePercent", testRunOptions.getDiffTollerancePercent());
 
         RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
 
@@ -66,10 +66,10 @@ public class VisualRegressionTracker {
         }
     }
 
-    public void track(TestRun testRun) throws IOException {
+    public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         this.startBuild();
 
-        TestResultDTO testResultDTO = this.submitTestRun(testRun);
+        TestResultDTO testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
         if (testResultDTO.getStatus().equals("new")) {
             throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));

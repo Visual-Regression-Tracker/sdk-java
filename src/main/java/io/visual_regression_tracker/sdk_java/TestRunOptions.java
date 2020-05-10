@@ -5,9 +5,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-public class TestRun {
-    String name;
-    String imageBase64;
+public class TestRunOptions {
     String os;
     String browser;
     String viewport;
