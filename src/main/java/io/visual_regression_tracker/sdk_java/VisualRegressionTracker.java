@@ -1,9 +1,6 @@
 package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
-import io.visual_regression_tracker.sdk_java.dto.BuildDTO;
-import io.visual_regression_tracker.sdk_java.dto.TestResultDTO;
-import io.visual_regression_tracker.sdk_java.dto.TestRun;
 
 import java.io.IOException;
 import java.net.URI;

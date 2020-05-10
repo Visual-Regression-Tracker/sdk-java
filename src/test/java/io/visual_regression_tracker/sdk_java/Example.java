@@ -1,6 +1,5 @@
 package io.visual_regression_tracker.sdk_java;
 
-import io.visual_regression_tracker.sdk_java.dto.TestRun;
 import org.apache.commons.io.FileUtils;
 import org.testng.annotations.Test;
 

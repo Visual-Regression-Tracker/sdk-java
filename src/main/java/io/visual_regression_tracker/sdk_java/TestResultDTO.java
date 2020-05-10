@@ -1,9 +1,8 @@
-package io.visual_regression_tracker.sdk_java.dto;
+package io.visual_regression_tracker.sdk_java;
 
 import lombok.Getter;
 
 @Getter
-public
 class TestResultDTO {
     String url;
     String status;

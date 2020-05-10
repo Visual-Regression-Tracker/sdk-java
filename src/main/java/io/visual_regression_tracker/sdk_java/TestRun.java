@@ -1,8 +1,7 @@
-package io.visual_regression_tracker.sdk_java.dto;
+package io.visual_regression_tracker.sdk_java;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 
 @Builder
 @Getter
