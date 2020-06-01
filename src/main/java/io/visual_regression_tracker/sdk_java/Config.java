@@ -6,6 +6,6 @@ import lombok.AllArgsConstructor;
 public class Config {
     String apiUrl;
     String projectId;
-    String token;
+    String apiKey;
     String branchName;
 }

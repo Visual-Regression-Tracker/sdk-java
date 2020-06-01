@@ -29,7 +29,7 @@ public class VisualRegressionTracker {
 
             Request request = new Request.Builder()
                     .url(this.config.apiUrl.concat("/builds"))
-                    .addHeader("apiKey", this.config.token)
+                    .addHeader("apiKey", this.config.apiKey)
                     .post(body)
                     .build();
 
@@ -56,7 +56,7 @@ public class VisualRegressionTracker {
 
         Request request = new Request.Builder()
                 .url(this.config.apiUrl.concat("/test"))
-                .addHeader("apiKey", this.config.token)
+                .addHeader("apiKey", this.config.apiKey)
                 .post(body)
                 .build();
 
