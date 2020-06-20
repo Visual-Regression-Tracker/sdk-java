@@ -35,9 +35,16 @@ More info about https://jitpack.io/
 * Create config
 ```
 Config config = new Config(
+    // apiUrl - URL to Visual Regression Tracker backend
     "http://localhost:4200",
+    
+    // projectId - copy from project details 
     "003f5fcf-6c5f-4f1f-a99f-82a697711382",
+    
+    // apiKey - copy from user details
     "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
+    
+    // branch - helps to identify version of application under test
     "develop"
 );
 ```
