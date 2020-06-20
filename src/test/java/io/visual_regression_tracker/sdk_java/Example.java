@@ -10,8 +10,8 @@ import java.util.Base64;
 public class Example {
     Config config = new Config(
             "http://localhost:4200",
-            "90e3b95d-6468-4771-a2e7-7bc7d3ca2b1b",
-            "W5KJ9ZGXRV458AH1XZEJ8WF284ED",
+            "733c148e-ef70-4e6d-9ae5-ab22263697cc",
+            "BAZ0EG0PRH4CRQPH19ZKAVADBP9E",
             "develop"
     );
 
@@ -29,9 +29,20 @@ public class Example {
                 ));
 
         visualRegressionTracker.track(
+                "Java test default options",
+                Base64.getEncoder().encodeToString(fileContent)
+        );
+
+        visualRegressionTracker.track(
                 "Java test",
                 Base64.getEncoder().encodeToString(fileContent),
-                TestRunOptions.builder().build()
+                TestRunOptions.builder()
+                        .device("Device")
+                        .os("OS")
+                        .browser("Browser")
+                        .viewport("Viewport")
+                        .diffTollerancePercent(5)
+                        .build()
         );
     }
 }

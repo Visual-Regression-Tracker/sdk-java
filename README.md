@@ -58,12 +58,15 @@ VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(co
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
 * Track image
+Default options
 ```
-visualKnightCore.processScreenshot(
+visualRegressionTracker.track(
         "Name for test",
-        screenshotBase64,
-        visualKnightCapabilities
+        screenshotBase64
 );
+```
+With specific options 
+```
 visualRegressionTracker.track(
         "Name for test",
         screenshotBase64,
@@ -71,7 +74,7 @@ visualRegressionTracker.track(
             .browser("Chrome")
             .os("Windows")
             .viewport("1200x800")
-            .diffTollerancePercent(1)
+            .diffTollerancePercent(3)
             .build()
 );
 ```

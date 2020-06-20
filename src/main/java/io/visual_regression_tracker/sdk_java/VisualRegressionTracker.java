@@ -79,4 +79,8 @@ public class VisualRegressionTracker {
             throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
         }
     }
+
+    public void track(String name, String imageBase64) throws IOException {
+        this.track(name, imageBase64, TestRunOptions.builder().build());
+    }
 }
