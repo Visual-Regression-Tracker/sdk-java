@@ -58,6 +58,7 @@ VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(co
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
 * Track image
+
 Default options
 ```
 visualRegressionTracker.track(
