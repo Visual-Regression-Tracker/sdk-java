@@ -22,8 +22,8 @@ dependencies {
 ```
 ```
 <dependency>
-    <groupId>com.github.pashidlos</groupId>
-    <artifactId>visual-regression-tracker</artifactId>
+    <groupId>com.github.visual-regression-tracker</groupId>
+    <artifactId>sdk-java</artifactId>
     <version>${VERSION}</version>
 </dependency>
 ```
