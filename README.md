@@ -22,7 +22,7 @@ dependencies {
 ```
 ```
 <dependency>
-    <groupId>com.github.visual-regression-tracker</groupId>
+    <groupId>com.github.Visual-Regression-Tracker</groupId>
     <artifactId>sdk-java</artifactId>
     <version>${VERSION}</version>
 </dependency>
