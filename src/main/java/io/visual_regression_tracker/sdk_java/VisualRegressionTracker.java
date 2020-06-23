@@ -9,12 +9,12 @@ import java.util.Map;
 
 public class VisualRegressionTracker {
     static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-    Config config;
+    VisualRegressionTrackerConfig visualRegressionTrackerConfig;
     String buildId;
     OkHttpClient client;
 
-    public VisualRegressionTracker(Config config) {
-        this.config = config;
+    public VisualRegressionTracker(VisualRegressionTrackerConfig visualRegressionTrackerConfig) {
+        this.visualRegressionTrackerConfig = visualRegressionTrackerConfig;
 
         this.client = new OkHttpClient();
     }
@@ -22,14 +22,14 @@ public class VisualRegressionTracker {
     void startBuild() throws IOException {
         if (this.buildId == null) {
             Map<String, String> data = new HashMap<>();
-            data.put("projectId", this.config.projectId);
-            data.put("branchName", this.config.branchName);
+            data.put("projectId", this.visualRegressionTrackerConfig.projectId);
+            data.put("branchName", this.visualRegressionTrackerConfig.branchName);
 
             RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
 
             Request request = new Request.Builder()
-                    .url(this.config.apiUrl.concat("/builds"))
-                    .addHeader("apiKey", this.config.apiKey)
+                    .url(this.visualRegressionTrackerConfig.apiUrl.concat("/builds"))
+                    .addHeader("apiKey", this.visualRegressionTrackerConfig.apiKey)
                     .post(body)
                     .build();
 
@@ -42,7 +42,7 @@ public class VisualRegressionTracker {
 
     TestResultDTO submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         Map<String, Object> data = new HashMap<>();
-        data.put("projectId", this.config.projectId);
+        data.put("projectId", this.visualRegressionTrackerConfig.projectId);
         data.put("buildId", this.buildId);
         data.put("name", name);
         data.put("imageBase64", imageBase64);
@@ -55,8 +55,8 @@ public class VisualRegressionTracker {
         RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
 
         Request request = new Request.Builder()
-                .url(this.config.apiUrl.concat("/test"))
-                .addHeader("apiKey", this.config.apiKey)
+                .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test"))
+                .addHeader("apiKey", this.visualRegressionTrackerConfig.apiKey)
                 .post(body)
                 .build();
 
