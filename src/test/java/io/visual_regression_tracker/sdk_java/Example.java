@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.Base64;
 
 public class Example {
-    Config config = new Config(
+    VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
             "http://localhost:4200",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
             "BAZ0EG0PRH4CRQPH19ZKAVADBP9E",

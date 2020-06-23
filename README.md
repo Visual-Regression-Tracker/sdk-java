@@ -34,7 +34,7 @@ More info about https://jitpack.io/
 ## Usage
 * Create config
 ```
-Config config = new Config(
+VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
     // apiUrl - URL to Visual Regression Tracker backend
     "http://localhost:4200",
     
