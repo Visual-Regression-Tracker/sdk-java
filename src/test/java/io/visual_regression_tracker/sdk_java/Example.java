@@ -19,7 +19,6 @@ public class Example {
     public void asdas() throws IOException {
         VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
 
-
         byte[] fileContent = FileUtils.readFileToByteArray(
                 new File(
                         getClass()
