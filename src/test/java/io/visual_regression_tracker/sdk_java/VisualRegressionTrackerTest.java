@@ -170,4 +170,9 @@ public class VisualRegressionTrackerTest {
 
         Mockito.verify(vrtMocked, Mockito.times(1)).track(Mockito.anyString(), Mockito.anyString(), Mockito.any(TestRunOptions.class));
     }
+
+    @Test
+    public void faled(){
+        MatcherAssert.assertThat(false, CoreMatchers.is(true));
+    }
 }
