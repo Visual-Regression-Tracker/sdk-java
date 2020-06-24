@@ -1,14 +1,18 @@
 package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
+import io.visual_regression_tracker.sdk_java.request.BuildRequest;
+import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
+import io.visual_regression_tracker.sdk_java.response.BuildResponse;
+import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import okhttp3.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class VisualRegressionTracker {
     static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    String apiKeyHeaderName = "apiKey";
+    Gson gson = new Gson();
     VisualRegressionTrackerConfig visualRegressionTrackerConfig;
     String buildId;
     OkHttpClient client;
@@ -21,61 +25,62 @@ public class VisualRegressionTracker {
 
     void startBuild() throws IOException {
         if (this.buildId == null) {
-            Map<String, String> data = new HashMap<>();
-            data.put("projectId", this.visualRegressionTrackerConfig.projectId);
-            data.put("branchName", this.visualRegressionTrackerConfig.branchName);
+            BuildRequest newBuild = BuildRequest.builder()
+                    .branchName(this.visualRegressionTrackerConfig.branchName)
+                    .projectId(this.visualRegressionTrackerConfig.projectId)
+                    .build();
 
-            RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
+            RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
 
             Request request = new Request.Builder()
                     .url(this.visualRegressionTrackerConfig.apiUrl.concat("/builds"))
-                    .addHeader("apiKey", this.visualRegressionTrackerConfig.apiKey)
+                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
                     .post(body)
                     .build();
 
             try (ResponseBody responseBody = client.newCall(request).execute().body()) {
-                BuildDTO buildDTO = new Gson().fromJson(responseBody.string(), BuildDTO.class);
+                BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
                 this.buildId = buildDTO.getId();
             }
         }
     }
 
-    TestResultDTO submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
-        Map<String, Object> data = new HashMap<>();
-        data.put("projectId", this.visualRegressionTrackerConfig.projectId);
-        data.put("buildId", this.buildId);
-        data.put("name", name);
-        data.put("imageBase64", imageBase64);
-        data.put("os", testRunOptions.getOs());
-        data.put("browser", testRunOptions.getBrowser());
-        data.put("viewport", testRunOptions.getViewport());
-        data.put("device", testRunOptions.getDevice());
-        data.put("diffTollerancePercent", testRunOptions.getDiffTollerancePercent());
+    TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
+        TestRunRequest newTestRun = TestRunRequest.builder()
+                .projectId(this.visualRegressionTrackerConfig.projectId)
+                .buildId(this.buildId)
+                .name(name)
+                .imageBase64(imageBase64)
+                .os(testRunOptions.getOs())
+                .browser(testRunOptions.getBrowser())
+                .viewport(testRunOptions.getViewport())
+                .device(testRunOptions.getDevice())
+                .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
+                .build();
 
-        RequestBody body = RequestBody.create(new Gson().toJson(data), JSON);
+        RequestBody body = RequestBody.create(gson.toJson(newTestRun), JSON);
 
         Request request = new Request.Builder()
                 .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test"))
-                .addHeader("apiKey", this.visualRegressionTrackerConfig.apiKey)
+                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
                 .post(body)
                 .build();
 
-
         try (ResponseBody responseBody = client.newCall(request).execute().body()) {
-            return new Gson().fromJson(responseBody.string(), TestResultDTO.class);
+            return gson.fromJson(responseBody.string(), TestRunResponse.class);
         }
     }
 
     public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         this.startBuild();
 
-        TestResultDTO testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
+        TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
-        if (testResultDTO.getStatus().equals("new")) {
+        if (testResultDTO.getStatus().equals(TestRunStatus.NEW)) {
             throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
         }
 
-        if (testResultDTO.getStatus().equals("unresolved")) {
+        if (testResultDTO.getStatus().equals(TestRunStatus.UNRESOLVED)) {
             throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
         }
     }
