@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class VisualRegressionTrackerConfig {
     String apiUrl;
-    String projectId;
+    String project;
     String apiKey;
     String branchName;
 }

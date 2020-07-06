@@ -1,18 +1,18 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
 
 ## Gradle
-```
+```yml
 repositories {
     maven { url 'https://jitpack.io' }
 }
 ```
-```
+```yml
 dependencies {
-    implementation group: 'com.github.visual-regression-tracker', name: 'sdk-java', version: '${VERSION}'
+    implementation group: 'com.github.visual-regression-tracker', name: 'sdk-java', version: '${REPLACE_THIS_VALUE}'
 }
 ```
 ## Maven
-```
+```xml
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -20,11 +20,11 @@ dependencies {
     </repository>
 </repositories>
 ```
-```
+```xml
 <dependency>
     <groupId>com.github.Visual-Regression-Tracker</groupId>
     <artifactId>sdk-java</artifactId>
-    <version>${VERSION}</version>
+    <version>${REPLACE_THIS_VALUE}</version>
 </dependency>
 ```
 [Available versions](https://github.com/Visual-Regression-Tracker/sdk-java/releases)
@@ -33,41 +33,41 @@ More info about https://jitpack.io/
 
 ## Usage
 * Create config
-```
+```java
 VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-    // apiUrl - URL to Visual Regression Tracker backend
+    // apiUrl - URL where backend is running 
     "http://localhost:4200",
     
-    // projectId - copy from project details 
+    // project - Project name or ID
     "003f5fcf-6c5f-4f1f-a99f-82a697711382",
     
-    // apiKey - copy from user details
+    // apiKey - User apiKey
     "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
     
-    // branch - helps to identify version of application under test
+    // branch - Current git branch 
     "develop"
 );
 ```
 * Create an instance of `VisualRegressionTracker`
-```
+```java
 VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
 ```
 * Take a screenshot as String in Base64 format
-```
+```java
 // Selenium example
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
 * Track image
 
 Default options
-```
+```java
 visualRegressionTracker.track(
         "Name for test",
         screenshotBase64
 );
 ```
 With specific options 
-```
+```java
 visualRegressionTracker.track(
         "Name for test",
         screenshotBase64,

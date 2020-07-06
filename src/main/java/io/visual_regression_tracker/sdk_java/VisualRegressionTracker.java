@@ -15,6 +15,7 @@ public class VisualRegressionTracker {
     Gson gson = new Gson();
     VisualRegressionTrackerConfig visualRegressionTrackerConfig;
     String buildId;
+    String projectId;
     OkHttpClient client;
 
     public VisualRegressionTracker(VisualRegressionTrackerConfig visualRegressionTrackerConfig) {
@@ -27,7 +28,7 @@ public class VisualRegressionTracker {
         if (this.buildId == null) {
             BuildRequest newBuild = BuildRequest.builder()
                     .branchName(this.visualRegressionTrackerConfig.branchName)
-                    .projectId(this.visualRegressionTrackerConfig.projectId)
+                    .project(this.visualRegressionTrackerConfig.project)
                     .build();
 
             RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
@@ -41,13 +42,14 @@ public class VisualRegressionTracker {
             try (ResponseBody responseBody = client.newCall(request).execute().body()) {
                 BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
                 this.buildId = buildDTO.getId();
+                this.projectId = buildDTO.getProjectId();
             }
         }
     }
 
     TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         TestRunRequest newTestRun = TestRunRequest.builder()
-                .projectId(this.visualRegressionTrackerConfig.projectId)
+                .projectId(this.projectId)
                 .buildId(this.buildId)
                 .name(name)
                 .imageBase64(imageBase64)
