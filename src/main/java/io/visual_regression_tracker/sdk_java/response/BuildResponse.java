@@ -7,4 +7,5 @@ import lombok.Getter;
 @Getter
 public class BuildResponse {
     String id;
+    String projectId;
 }

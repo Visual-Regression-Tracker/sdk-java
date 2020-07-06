@@ -50,12 +50,14 @@ public class VisualRegressionTrackerTest {
     @Test
     void shouldStartBuild() throws IOException, InterruptedException {
         String buildId = "123123";
+        String projectId = "projectId";
         BuildRequest buildRequest = BuildRequest.builder()
                 .branchName(this.config.branchName)
-                .projectId(this.config.projectId)
+                .project(this.config.project)
                 .build();
         BuildResponse buildResponse = BuildResponse.builder()
                 .id(buildId)
+                .projectId(projectId)
                 .build();
         server.enqueue(new MockResponse().setBody(gson.toJson(buildResponse)));
 
@@ -65,11 +67,13 @@ public class VisualRegressionTrackerTest {
         MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.apiKey));
         MatcherAssert.assertThat(request.getBody().readUtf8(), CoreMatchers.is(gson.toJson(buildRequest)));
         MatcherAssert.assertThat(vrt.buildId, CoreMatchers.is(buildId));
+        MatcherAssert.assertThat(vrt.projectId, CoreMatchers.is(projectId));
     }
 
     @Test
     void shouldSubmitTestRun() throws IOException, InterruptedException {
         String buildId = "123123";
+        String projectId = "projectId";
         String name = "Test name";
         String imageBase64 = "image";
         TestRunOptions testRunOptions = TestRunOptions.builder()
@@ -80,7 +84,7 @@ public class VisualRegressionTrackerTest {
                 .diffTollerancePercent(5)
                 .build();
         TestRunRequest testRunRequest = TestRunRequest.builder()
-                .projectId(this.config.projectId)
+                .projectId(projectId)
                 .buildId(buildId)
                 .name(name)
                 .imageBase64(imageBase64)

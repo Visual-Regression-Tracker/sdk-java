@@ -4,6 +4,6 @@ import lombok.Builder;
 
 @Builder
 public class BuildRequest {
-    String projectId;
+    String project;
     String branchName;
 }
