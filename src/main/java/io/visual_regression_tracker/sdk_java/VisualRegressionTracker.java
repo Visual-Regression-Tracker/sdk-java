@@ -63,7 +63,7 @@ public class VisualRegressionTracker {
         RequestBody body = RequestBody.create(gson.toJson(newTestRun), JSON);
 
         Request request = new Request.Builder()
-                .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test"))
+                .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test-runs"))
                 .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
                 .post(body)
                 .build();
