@@ -13,4 +13,5 @@ public class TestRunRequest {
     String viewport;
     String device;
     Integer diffTollerancePercent;
+    String branchName;
 }
