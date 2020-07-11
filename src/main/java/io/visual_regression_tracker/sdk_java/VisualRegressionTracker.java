@@ -51,6 +51,7 @@ public class VisualRegressionTracker {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(this.projectId)
                 .buildId(this.buildId)
+                .branchName(this.visualRegressionTrackerConfig.branchName)
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())

@@ -85,6 +85,7 @@ public class VisualRegressionTrackerTest {
                 .build();
         TestRunRequest testRunRequest = TestRunRequest.builder()
                 .projectId(projectId)
+                .branchName(config.branchName)
                 .buildId(buildId)
                 .name(name)
                 .imageBase64(imageBase64)
