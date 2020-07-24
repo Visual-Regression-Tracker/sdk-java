@@ -10,7 +10,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -56,9 +55,11 @@ public class VisualRegressionTracker {
                 String responseBody = Optional.ofNullable(response.body())
                         .orElseThrow(() -> new TestRunException("Cannot get response body"))
                         .string();
-                BuildResponse buildDTO = new Gson().fromJson(responseBody, BuildResponse.class);
-                this.buildId = buildDTO.getId();
-                this.projectId = buildDTO.getProjectId();
+                BuildResponse buildDTO = gson.fromJson(responseBody, BuildResponse.class);
+                this.buildId = Optional.ofNullable(buildDTO.getId())
+                        .orElseThrow(() -> new TestRunException("Build id is null"));
+                this.projectId = Optional.ofNullable(buildDTO.getProjectId())
+                        .orElseThrow(() -> new TestRunException("Project id is null"));
             }
         }
     }
@@ -85,8 +86,11 @@ public class VisualRegressionTracker {
                 .post(body)
                 .build();
 
-        try (ResponseBody responseBody = client.newCall(request).execute().body()) {
-            return gson.fromJson(responseBody.string(), TestRunResponse.class);
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = Optional.ofNullable(response.body())
+                    .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                    .string();
+            return gson.fromJson(responseBody, TestRunResponse.class);
         }
     }
 
@@ -95,11 +99,14 @@ public class VisualRegressionTracker {
 
         TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
-        if (testResultDTO.getStatus().equals(TestRunStatus.NEW)) {
+        TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
+                .orElseThrow(() -> new TestRunException("Status is null"));
+
+        if (status.equals(TestRunStatus.NEW)) {
             throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
         }
 
-        if (testResultDTO.getStatus().equals(TestRunStatus.UNRESOLVED)) {
+        if (status.equals(TestRunStatus.UNRESOLVED)) {
             throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
         }
     }

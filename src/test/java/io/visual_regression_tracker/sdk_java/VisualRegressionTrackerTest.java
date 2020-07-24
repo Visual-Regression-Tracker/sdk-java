@@ -24,7 +24,7 @@ public class VisualRegressionTrackerTest {
     MockWebServer server;
     VisualRegressionTracker vrt;
     VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-            "http://localhost",
+            "http://localhost:4200",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
             "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
             "develop"
@@ -160,7 +160,7 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test(dataProvider = "shouldTrackThrowExceptionCases")
-    public void shouldTrackThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
+    void shouldTrackThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
         Mockito.when(vrtMocked.submitTestRun(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(testRunResponse);
 
@@ -187,7 +187,7 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test(dataProvider = "shouldTrackPassCases")
-    public void shouldTrackPass(TestRunResponse testRunResponse) throws IOException {
+    void shouldTrackPass(TestRunResponse testRunResponse) throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
         Mockito.when(vrtMocked.submitTestRun(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(testRunResponse);
 
@@ -196,7 +196,7 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test()
-    public void shouldTrackOverload() throws IOException {
+    void shouldTrackOverload() throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
 
         Mockito.doCallRealMethod().when(vrtMocked).track(Mockito.anyString(), Mockito.anyString());
