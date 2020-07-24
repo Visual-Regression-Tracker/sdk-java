@@ -32,7 +32,7 @@ public class VisualRegressionTrackerTest {
 
     @SneakyThrows
     @BeforeMethod
-    private void setup() {
+    public void setup() {
         server = new MockWebServer();
         server.start();
 
@@ -43,7 +43,7 @@ public class VisualRegressionTrackerTest {
 
     @SneakyThrows
     @AfterMethod
-    private void tearDown() {
+    public void tearDown() {
         server.shutdown();
     }
 
