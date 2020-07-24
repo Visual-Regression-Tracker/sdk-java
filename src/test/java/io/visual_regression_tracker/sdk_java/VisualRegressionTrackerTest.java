@@ -24,9 +24,9 @@ public class VisualRegressionTrackerTest {
     MockWebServer server;
     VisualRegressionTracker vrt;
     VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-            "http://localhost",
+            "http://localhost:4200",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
-            "BAZ0EG0PRH4CRQPH19ZKAVADBP9E1",
+            "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
             "develop"
     );
 
@@ -71,18 +71,33 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test
-    void shouldThrowExceptionIfProjectNotFound() throws IOException, InterruptedException {
-        String projectId = "non-existing";
-        BuildRequest buildRequest = BuildRequest.builder()
-                .branchName(this.config.branchName)
-                .project(this.config.project)
-                .build();
+    void shouldThrowExceptionIfProjectNotFound() throws IOException {
         server.enqueue(new MockResponse()
-                .setHttp2ErrorCode(404)
+                .setResponseCode(404)
                 .setBody("{\r\n  \"statusCode\": 404,\r\n  \"message\": \"Project not found\"\r\n}"));
 
-        vrt.startBuild();
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Project not found"));
+    }
 
+    @Test
+    void shouldThrowExceptionIfUnauthorized() throws IOException {
+        server.enqueue(new MockResponse()
+                .setResponseCode(401)
+                .setBody("{\r\n  \"statusCode\": 401,\r\n  \"message\": \"Unauthorized\"\r\n}"));
+
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Unauthorized"));
     }
 
     @Test
@@ -143,7 +158,6 @@ public class VisualRegressionTrackerTest {
                 }
         };
     }
-
 
     @Test(dataProvider = "shouldTrackThrowExceptionCases")
     public void shouldTrackThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {

@@ -5,7 +5,12 @@ import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
-import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 import java.io.IOException;
 
@@ -39,13 +44,17 @@ public class VisualRegressionTracker {
                     .post(body)
                     .build();
 
-            try (ResponseBody responseBody = client.newCall(request).execute().body()) {
+            try (Response response = client.newCall(request).execute()) {
+                if (response.code() == 404) {
+                    throw new TestRunException("Project not found");
+                }
+                if (response.code() == 401) {
+                    throw new TestRunException("Unauthorized");
+                }
+                ResponseBody responseBody = response.body();
                 BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
                 this.buildId = buildDTO.getId();
                 this.projectId = buildDTO.getProjectId();
-            } catch(Exception ex){
-                System.out.println(ex.getMessage());
-                throw ex;
             }
         }
     }
