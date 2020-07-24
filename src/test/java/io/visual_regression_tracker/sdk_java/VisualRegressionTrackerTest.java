@@ -103,6 +103,21 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test
+    public void shouldThrowExceptionIfForbidden() throws IOException {
+        server.enqueue(new MockResponse()
+                .setResponseCode(403)
+                .setBody("{\r\n  \"statusCode\": 403,\r\n  \"message\": \"Forbidden\"\r\n}"));
+
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Api key not authenticated"));
+    }
+
+    @Test
     public void shouldSubmitTestRun() throws IOException, InterruptedException {
         String buildId = "123123";
         String projectId = "projectId";

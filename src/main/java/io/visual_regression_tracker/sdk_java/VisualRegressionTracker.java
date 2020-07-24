@@ -45,11 +45,14 @@ public class VisualRegressionTracker {
                     .build();
 
             try (Response response = client.newCall(request).execute()) {
-                if (response.code() == 404) {
-                    throw new TestRunException("Project not found");
-                }
                 if (response.code() == 401) {
                     throw new TestRunException("Unauthorized");
+                }
+                if (response.code() == 403) {
+                    throw new TestRunException("Api key not authenticated");
+                }
+                if (response.code() == 404) {
+                    throw new TestRunException("Project not found");
                 }
 
                 String responseBody = Optional.ofNullable(response.body())
