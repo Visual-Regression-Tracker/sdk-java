@@ -43,6 +43,9 @@ public class VisualRegressionTracker {
                 BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
                 this.buildId = buildDTO.getId();
                 this.projectId = buildDTO.getProjectId();
+            } catch(Exception ex){
+                System.out.println(ex.getMessage());
+                throw ex;
             }
         }
     }

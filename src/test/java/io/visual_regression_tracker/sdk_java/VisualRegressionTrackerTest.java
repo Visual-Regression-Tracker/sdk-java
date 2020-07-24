@@ -71,6 +71,21 @@ public class VisualRegressionTrackerTest {
     }
 
     @Test
+    void shouldThrowExceptionIfProjectNotFound() throws IOException, InterruptedException {
+        String projectId = "non-existing";
+        BuildRequest buildRequest = BuildRequest.builder()
+                .branchName(this.config.branchName)
+                .project(this.config.project)
+                .build();
+        server.enqueue(new MockResponse()
+                .setHttp2ErrorCode(404)
+                .setBody("{\r\n  \"statusCode\": 404,\r\n  \"message\": \"Project not found\"\r\n}"));
+
+        vrt.startBuild();
+
+    }
+
+    @Test
     void shouldSubmitTestRun() throws IOException, InterruptedException {
         String buildId = "123123";
         String projectId = "projectId";
