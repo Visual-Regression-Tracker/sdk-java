@@ -35,25 +35,14 @@ dependencies {
 
 test {
     useTestNG()
-    finalizedBy jacocoTestReport // report is always generated after tests run
 }
 
 // codecov integration https://github.com/codecov/example-gradle
-task codeCoverageReport(type: JacocoReport) {
-    executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
-
-    subprojects.each {
-        sourceSets it.sourceSets.main
-    }
-
+jacocoTestReport {
     reports {
         xml.enabled true
-        xml.destination file("${buildDir}/reports/jacoco/report.xml")
-        html.enabled false
-        csv.enabled false
+        html.enabled true
     }
 }
 
-codeCoverageReport.dependsOn {
-    subprojects*.test
-}
+check.dependsOn jacocoTestReport
