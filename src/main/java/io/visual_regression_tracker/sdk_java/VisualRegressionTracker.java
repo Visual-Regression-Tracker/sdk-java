@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 public class VisualRegressionTracker {
-    static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     String apiKeyHeaderName = "apiKey";
     Gson gson = new Gson();
     VisualRegressionTrackerConfig visualRegressionTrackerConfig;
@@ -29,18 +29,18 @@ public class VisualRegressionTracker {
         this.client = new OkHttpClient();
     }
 
-    void startBuild() throws IOException {
+    protected void startBuild() throws IOException {
         if (this.buildId == null) {
             BuildRequest newBuild = BuildRequest.builder()
-                    .branchName(this.visualRegressionTrackerConfig.branchName)
-                    .project(this.visualRegressionTrackerConfig.project)
+                    .branchName(this.visualRegressionTrackerConfig.getBranchName())
+                    .project(this.visualRegressionTrackerConfig.getProject())
                     .build();
 
             RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
 
             Request request = new Request.Builder()
-                    .url(this.visualRegressionTrackerConfig.apiUrl.concat("/builds"))
-                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
+                    .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds"))
+                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
                     .post(body)
                     .build();
 
@@ -64,11 +64,11 @@ public class VisualRegressionTracker {
         }
     }
 
-    TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
+    protected TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(this.projectId)
                 .buildId(this.buildId)
-                .branchName(this.visualRegressionTrackerConfig.branchName)
+                .branchName(this.visualRegressionTrackerConfig.getBranchName())
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())
@@ -81,8 +81,8 @@ public class VisualRegressionTracker {
         RequestBody body = RequestBody.create(gson.toJson(newTestRun), JSON);
 
         Request request = new Request.Builder()
-                .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test-runs"))
-                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
+                .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/test-runs"))
+                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
                 .post(body)
                 .build();
 
