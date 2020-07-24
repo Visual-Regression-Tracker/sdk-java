@@ -13,6 +13,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class VisualRegressionTracker {
     static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
@@ -51,8 +52,11 @@ public class VisualRegressionTracker {
                 if (response.code() == 401) {
                     throw new TestRunException("Unauthorized");
                 }
-                ResponseBody responseBody = response.body();
-                BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
+
+                String responseBody = Optional.ofNullable(response.body())
+                        .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                        .string();
+                BuildResponse buildDTO = new Gson().fromJson(responseBody, BuildResponse.class);
                 this.buildId = buildDTO.getId();
                 this.projectId = buildDTO.getProjectId();
             }

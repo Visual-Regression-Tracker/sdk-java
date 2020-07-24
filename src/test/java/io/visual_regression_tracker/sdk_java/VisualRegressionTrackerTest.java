@@ -24,7 +24,7 @@ public class VisualRegressionTrackerTest {
     MockWebServer server;
     VisualRegressionTracker vrt;
     VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-            "http://localhost:4200",
+            "http://localhost",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
             "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
             "develop"
