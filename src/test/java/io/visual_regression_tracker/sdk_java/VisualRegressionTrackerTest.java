@@ -12,8 +12,8 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.mockito.Mockito;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
@@ -24,14 +24,14 @@ public class VisualRegressionTrackerTest {
     MockWebServer server;
     VisualRegressionTracker vrt;
     VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-            "http://localhost:4200",
+            "http://localhost",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
             "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
             "develop"
     );
 
     @SneakyThrows
-    @BeforeTest
+    @BeforeMethod
     void setup() {
         server = new MockWebServer();
         server.start();
@@ -42,7 +42,7 @@ public class VisualRegressionTrackerTest {
     }
 
     @SneakyThrows
-    @AfterTest
+    @AfterMethod
     void tearDown() {
         server.shutdown();
     }
@@ -59,7 +59,9 @@ public class VisualRegressionTrackerTest {
                 .id(buildId)
                 .projectId(projectId)
                 .build();
-        server.enqueue(new MockResponse().setBody(gson.toJson(buildResponse)));
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setBody(gson.toJson(buildResponse)));
 
         vrt.startBuild();
 
@@ -130,6 +132,7 @@ public class VisualRegressionTrackerTest {
                 .build();
         server.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
         vrt.buildId = buildId;
+        vrt.projectId = projectId;
 
         TestRunResponse result = vrt.submitTestRun(name, imageBase64, testRunOptions);
 
