@@ -1,5 +1,5 @@
 group 'io.visual-regression-tracker.sdk-java'
-version '3.1.1'
+version '3.1.2'
 
 apply plugin: 'java'
 apply plugin: 'jacoco'
