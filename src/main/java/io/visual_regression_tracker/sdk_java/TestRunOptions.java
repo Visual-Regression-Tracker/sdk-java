@@ -10,6 +10,5 @@ public class TestRunOptions {
     private final String browser;
     private final String viewport;
     private final String device;
-    @Builder.Default
-    private final Integer diffTollerancePercent = 1;
+    private final Float diffTollerancePercent;
 }

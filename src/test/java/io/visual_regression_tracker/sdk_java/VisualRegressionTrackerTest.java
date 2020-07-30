@@ -128,7 +128,7 @@ public class VisualRegressionTrackerTest {
                 .os("OS")
                 .browser("Browser")
                 .viewport("Viewport")
-                .diffTollerancePercent(5)
+                .diffTollerancePercent(0.5f)
                 .build();
         TestRunRequest testRunRequest = TestRunRequest.builder()
                 .projectId(projectId)
