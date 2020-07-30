@@ -1,5 +1,4 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
-[![codecov](https://codecov.io/gh/Visual-Regression-Tracker/sdk-java/branch/master/graph/badge.svg)](https://codecov.io/gh/Visual-Regression-Tracker/sdk-java)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/79dcd96f2be04992bc1059cad60e2e04)](https://www.codacy.com/gh/Visual-Regression-Tracker/sdk-java?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Visual-Regression-Tracker/sdk-java&amp;utm_campaign=Badge_Grade)
 ## Gradle
 ```yml
@@ -76,7 +75,7 @@ visualRegressionTracker.track(
             .browser("Chrome")
             .os("Windows")
             .viewport("1200x800")
-            .diffTollerancePercent(3)
+            .diffTollerancePercent(3.0f)
             .build()
 );
 ```
