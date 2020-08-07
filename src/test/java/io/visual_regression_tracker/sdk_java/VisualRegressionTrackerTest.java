@@ -12,66 +12,113 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.mockito.Mockito;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
 
 public class VisualRegressionTrackerTest {
-    Gson gson = new Gson();
-    MockWebServer server;
-    VisualRegressionTracker vrt;
-    VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
+    private final Gson gson = new Gson();
+    private final VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
             "http://localhost",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
-            "BAZ0EG0PRH4CRQPH19ZKAVADBP9E1",
+            "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
             "develop"
     );
+    private MockWebServer server;
+    private VisualRegressionTracker vrt;
 
     @SneakyThrows
-    @BeforeTest
-    void setup() {
+    @BeforeMethod
+    public void setup() {
         server = new MockWebServer();
         server.start();
 
         // target to mock server
-        this.config.apiUrl = server.url("/").toString();
+        this.config.setApiUrl(server.url("/").toString());
         vrt = new VisualRegressionTracker(config);
     }
 
     @SneakyThrows
-    @AfterTest
-    void tearDown() {
+    @AfterMethod
+    public void tearDown() {
         server.shutdown();
     }
 
     @Test
-    void shouldStartBuild() throws IOException, InterruptedException {
+    public void shouldStartBuild() throws IOException, InterruptedException {
         String buildId = "123123";
         String projectId = "projectId";
         BuildRequest buildRequest = BuildRequest.builder()
-                .branchName(this.config.branchName)
-                .project(this.config.project)
+                .branchName(this.config.getBranchName())
+                .project(this.config.getProject())
                 .build();
         BuildResponse buildResponse = BuildResponse.builder()
                 .id(buildId)
                 .projectId(projectId)
                 .build();
-        server.enqueue(new MockResponse().setBody(gson.toJson(buildResponse)));
+        server.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setBody(gson.toJson(buildResponse)));
 
         vrt.startBuild();
 
         RecordedRequest request = server.takeRequest();
-        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.apiKey));
+        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(request.getBody().readUtf8(), CoreMatchers.is(gson.toJson(buildRequest)));
         MatcherAssert.assertThat(vrt.buildId, CoreMatchers.is(buildId));
         MatcherAssert.assertThat(vrt.projectId, CoreMatchers.is(projectId));
     }
 
     @Test
-    void shouldSubmitTestRun() throws IOException, InterruptedException {
+    public void shouldThrowExceptionIfProjectNotFound() throws IOException {
+        server.enqueue(new MockResponse()
+                .setResponseCode(404)
+                .setBody("{\r\n  \"statusCode\": 404,\r\n  \"message\": \"Project not found\"\r\n}"));
+
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Project not found"));
+    }
+
+    @Test
+    public void shouldThrowExceptionIfUnauthorized() throws IOException {
+        server.enqueue(new MockResponse()
+                .setResponseCode(401)
+                .setBody("{\r\n  \"statusCode\": 401,\r\n  \"message\": \"Unauthorized\"\r\n}"));
+
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Unauthorized"));
+    }
+
+    @Test
+    public void shouldThrowExceptionIfForbidden() throws IOException {
+        server.enqueue(new MockResponse()
+                .setResponseCode(403)
+                .setBody("{\r\n  \"statusCode\": 403,\r\n  \"message\": \"Forbidden\"\r\n}"));
+
+        String exceptionMessage = "";
+        try {
+            vrt.startBuild();
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Api key not authenticated"));
+    }
+
+    @Test
+    public void shouldSubmitTestRun() throws IOException, InterruptedException {
         String buildId = "123123";
         String projectId = "projectId";
         String name = "Test name";
@@ -81,11 +128,11 @@ public class VisualRegressionTrackerTest {
                 .os("OS")
                 .browser("Browser")
                 .viewport("Viewport")
-                .diffTollerancePercent(5)
+                .diffTollerancePercent(0.5f)
                 .build();
         TestRunRequest testRunRequest = TestRunRequest.builder()
                 .projectId(projectId)
-                .branchName(config.branchName)
+                .branchName(config.getBranchName())
                 .buildId(buildId)
                 .name(name)
                 .imageBase64(imageBase64)
@@ -100,11 +147,12 @@ public class VisualRegressionTrackerTest {
                 .build();
         server.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
         vrt.buildId = buildId;
+        vrt.projectId = projectId;
 
         TestRunResponse result = vrt.submitTestRun(name, imageBase64, testRunOptions);
 
         RecordedRequest request = server.takeRequest();
-        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.apiKey));
+        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(request.getBody().readUtf8(), CoreMatchers.is(gson.toJson(testRunRequest)));
         MatcherAssert.assertThat(gson.toJson(result), CoreMatchers.is(gson.toJson(testRunResponse)));
     }
@@ -128,7 +176,6 @@ public class VisualRegressionTrackerTest {
                 }
         };
     }
-
 
     @Test(dataProvider = "shouldTrackThrowExceptionCases")
     public void shouldTrackThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {

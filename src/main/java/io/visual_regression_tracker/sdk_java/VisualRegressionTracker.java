@@ -5,12 +5,17 @@ import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
-import okhttp3.*;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public class VisualRegressionTracker {
-    static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     String apiKeyHeaderName = "apiKey";
     Gson gson = new Gson();
     VisualRegressionTrackerConfig visualRegressionTrackerConfig;
@@ -24,34 +29,49 @@ public class VisualRegressionTracker {
         this.client = new OkHttpClient();
     }
 
-    void startBuild() throws IOException {
+    protected void startBuild() throws IOException {
         if (this.buildId == null) {
             BuildRequest newBuild = BuildRequest.builder()
-                    .branchName(this.visualRegressionTrackerConfig.branchName)
-                    .project(this.visualRegressionTrackerConfig.project)
+                    .branchName(this.visualRegressionTrackerConfig.getBranchName())
+                    .project(this.visualRegressionTrackerConfig.getProject())
                     .build();
 
             RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
 
             Request request = new Request.Builder()
-                    .url(this.visualRegressionTrackerConfig.apiUrl.concat("/builds"))
-                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
+                    .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds"))
+                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
                     .post(body)
                     .build();
 
-            try (ResponseBody responseBody = client.newCall(request).execute().body()) {
-                BuildResponse buildDTO = new Gson().fromJson(responseBody.string(), BuildResponse.class);
-                this.buildId = buildDTO.getId();
-                this.projectId = buildDTO.getProjectId();
+            try (Response response = client.newCall(request).execute()) {
+                if (response.code() == 401) {
+                    throw new TestRunException("Unauthorized");
+                }
+                if (response.code() == 403) {
+                    throw new TestRunException("Api key not authenticated");
+                }
+                if (response.code() == 404) {
+                    throw new TestRunException("Project not found");
+                }
+
+                String responseBody = Optional.ofNullable(response.body())
+                        .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                        .string();
+                BuildResponse buildDTO = gson.fromJson(responseBody, BuildResponse.class);
+                this.buildId = Optional.ofNullable(buildDTO.getId())
+                        .orElseThrow(() -> new TestRunException("Build id is null"));
+                this.projectId = Optional.ofNullable(buildDTO.getProjectId())
+                        .orElseThrow(() -> new TestRunException("Project id is null"));
             }
         }
     }
 
-    TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
+    protected TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(this.projectId)
                 .buildId(this.buildId)
-                .branchName(this.visualRegressionTrackerConfig.branchName)
+                .branchName(this.visualRegressionTrackerConfig.getBranchName())
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())
@@ -64,13 +84,16 @@ public class VisualRegressionTracker {
         RequestBody body = RequestBody.create(gson.toJson(newTestRun), JSON);
 
         Request request = new Request.Builder()
-                .url(this.visualRegressionTrackerConfig.apiUrl.concat("/test-runs"))
-                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.apiKey)
+                .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/test-runs"))
+                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
                 .post(body)
                 .build();
 
-        try (ResponseBody responseBody = client.newCall(request).execute().body()) {
-            return gson.fromJson(responseBody.string(), TestRunResponse.class);
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = Optional.ofNullable(response.body())
+                    .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                    .string();
+            return gson.fromJson(responseBody, TestRunResponse.class);
         }
     }
 
@@ -79,11 +102,14 @@ public class VisualRegressionTracker {
 
         TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
-        if (testResultDTO.getStatus().equals(TestRunStatus.NEW)) {
+        TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
+                .orElseThrow(() -> new TestRunException("Status is null"));
+
+        if (status.equals(TestRunStatus.NEW)) {
             throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
         }
 
-        if (testResultDTO.getStatus().equals(TestRunStatus.UNRESOLVED)) {
+        if (status.equals(TestRunStatus.UNRESOLVED)) {
             throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
         }
     }

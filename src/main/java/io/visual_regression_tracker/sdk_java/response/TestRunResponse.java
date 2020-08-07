@@ -7,10 +7,6 @@ import lombok.Getter;
 @Builder
 @Getter
 public class TestRunResponse {
-    String url;
-    TestRunStatus status;
-    // not used for now
-//    int pixelMisMatchCount;
-//    float diffPercent;
-//    float diffTollerancePercent;
+    private final String url;
+    private final TestRunStatus status;
 }
