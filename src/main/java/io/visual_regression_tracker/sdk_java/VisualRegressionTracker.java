@@ -29,45 +29,64 @@ public class VisualRegressionTracker {
         this.client = new OkHttpClient();
     }
 
-    protected void startBuild() throws IOException {
-        if (this.buildId == null) {
-            BuildRequest newBuild = BuildRequest.builder()
-                    .branchName(this.visualRegressionTrackerConfig.getBranchName())
-                    .project(this.visualRegressionTrackerConfig.getProject())
-                    .build();
+    protected boolean isStarted() {
+        return this.buildId != null && this.projectId != null;
+    }
 
-            RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
+    public void start() throws IOException {
+        BuildRequest newBuild = BuildRequest.builder()
+                .branchName(this.visualRegressionTrackerConfig.getBranchName())
+                .project(this.visualRegressionTrackerConfig.getProject())
+                .build();
 
-            Request request = new Request.Builder()
-                    .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds"))
-                    .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
-                    .post(body)
-                    .build();
+        RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
 
-            try (Response response = client.newCall(request).execute()) {
-                if (response.code() == 401) {
-                    throw new TestRunException("Unauthorized");
-                }
-                if (response.code() == 403) {
-                    throw new TestRunException("Api key not authenticated");
-                }
-                if (response.code() == 404) {
-                    throw new TestRunException("Project not found");
-                }
+        Request request = new Request.Builder()
+                .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds"))
+                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
+                .post(body)
+                .build();
 
-                String responseBody = Optional.ofNullable(response.body())
-                        .orElseThrow(() -> new TestRunException("Cannot get response body"))
-                        .string();
-                BuildResponse buildDTO = gson.fromJson(responseBody, BuildResponse.class);
-                this.buildId = Optional.ofNullable(buildDTO.getId())
-                        .orElseThrow(() -> new TestRunException("Build id is null"));
-                this.projectId = Optional.ofNullable(buildDTO.getProjectId())
-                        .orElseThrow(() -> new TestRunException("Project id is null"));
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() == 401) {
+                throw new TestRunException("Unauthorized");
             }
+            if (response.code() == 403) {
+                throw new TestRunException("Api key not authenticated");
+            }
+            if (response.code() == 404) {
+                throw new TestRunException("Project not found");
+            }
+
+            String responseBody = Optional.ofNullable(response.body())
+                    .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                    .string();
+            BuildResponse buildDTO = gson.fromJson(responseBody, BuildResponse.class);
+            this.buildId = Optional.ofNullable(buildDTO.getId())
+                    .orElseThrow(() -> new TestRunException("Build id is null"));
+            this.projectId = Optional.ofNullable(buildDTO.getProjectId())
+                    .orElseThrow(() -> new TestRunException("Project id is null"));
         }
     }
 
+    public void stop() throws IOException {
+        if (!this.isStarted()) {
+            throw new TestRunException("Visual Regression Tracker has not been started");
+        }
+
+        Request request = new Request.Builder()
+                .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds/").concat(this.buildId))
+                .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
+                .build();
+
+        client.newCall(request).execute();
+    }
+
     protected TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
+        if (!this.isStarted()) {
+            throw new TestRunException("Visual Regression Tracker has not been started");
+        }
+
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(this.projectId)
                 .buildId(this.buildId)
@@ -98,8 +117,6 @@ public class VisualRegressionTracker {
     }
 
     public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
-        this.startBuild();
-
         TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
         TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
