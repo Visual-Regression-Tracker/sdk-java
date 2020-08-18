@@ -77,6 +77,7 @@ public class VisualRegressionTracker {
         Request request = new Request.Builder()
                 .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds/").concat(this.buildId))
                 .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
+                .patch(RequestBody.create("", JSON))
                 .build();
 
         client.newCall(request).execute();

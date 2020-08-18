@@ -153,6 +153,7 @@ public class VisualRegressionTrackerTest {
         vrt.stop();
 
         RecordedRequest request = server.takeRequest();
+        MatcherAssert.assertThat(request.getMethod(), CoreMatchers.is("PATCH"));
         MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(Objects.requireNonNull(request.getRequestUrl()).encodedPath(), CoreMatchers.containsString(buildId));
     }
