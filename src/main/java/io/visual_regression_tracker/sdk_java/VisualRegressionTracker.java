@@ -39,7 +39,7 @@ public class VisualRegressionTracker {
                 .project(this.visualRegressionTrackerConfig.getProject())
                 .build();
 
-        RequestBody body = RequestBody.create(gson.toJson(newBuild), JSON);
+        RequestBody body = RequestBody.create(JSON, gson.toJson(newBuild));
 
         Request request = new Request.Builder()
                 .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds"))
@@ -77,7 +77,7 @@ public class VisualRegressionTracker {
         Request request = new Request.Builder()
                 .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/builds/").concat(this.buildId))
                 .addHeader(apiKeyHeaderName, this.visualRegressionTrackerConfig.getApiKey())
-                .patch(RequestBody.create("", JSON))
+                .patch(RequestBody.create(JSON, ""))
                 .build();
 
         client.newCall(request).execute();
@@ -101,7 +101,7 @@ public class VisualRegressionTracker {
                 .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
                 .build();
 
-        RequestBody body = RequestBody.create(gson.toJson(newTestRun), JSON);
+        RequestBody body = RequestBody.create(JSON, gson.toJson(newTestRun));
 
         Request request = new Request.Builder()
                 .url(this.visualRegressionTrackerConfig.getApiUrl().concat("/test-runs"))

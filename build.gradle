@@ -1,5 +1,5 @@
 group 'io.visual-regression-tracker.sdk-java'
-version '4.0.0'
+version '4.0.2'
 
 apply plugin: 'java'
 apply plugin: 'jacoco'
@@ -25,7 +25,7 @@ buildscript {
 }
 
 dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.8.0'
+    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.google.code.gson:gson:2.8.6'
     testImplementation group: 'org.testng', name: 'testng', version: '7.1.0'
     testImplementation 'commons-io:commons-io:2.7'
