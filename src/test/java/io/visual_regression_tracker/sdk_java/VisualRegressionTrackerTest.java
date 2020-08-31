@@ -6,6 +6,10 @@ import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.SneakyThrows;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -48,25 +52,6 @@ public class VisualRegressionTrackerTest {
         server.shutdown();
     }
 
-    @DataProvider(name = "shouldReturnIsStartedCases")
-    public Object[][] shouldReturnIsStartedCases() {
-        return new Object[][]{
-                {null, null, false},
-                {null, "some", false},
-                {"some", null, false},
-                {"some", "some", true},
-        };
-    }
-
-    @Test(dataProvider = "shouldReturnIsStartedCases")
-    public void shouldReturnIsStarted(String buildId, String projectId, boolean expectedResult) {
-        vrt.buildId = buildId;
-        vrt.projectId = projectId;
-
-        boolean result = vrt.isStarted();
-        MatcherAssert.assertThat(result, CoreMatchers.is(expectedResult));
-    }
-
     @Test
     public void shouldStartBuild() throws IOException, InterruptedException {
         String buildId = "123123";
@@ -86,55 +71,10 @@ public class VisualRegressionTrackerTest {
         vrt.start();
 
         RecordedRequest request = server.takeRequest();
-        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
+        MatcherAssert.assertThat(request.getHeader(VisualRegressionTracker.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(request.getBody().readUtf8(), CoreMatchers.is(gson.toJson(buildRequest)));
         MatcherAssert.assertThat(vrt.buildId, CoreMatchers.is(buildId));
         MatcherAssert.assertThat(vrt.projectId, CoreMatchers.is(projectId));
-    }
-
-    @Test
-    public void shouldThrowExceptionIfProjectNotFound() throws IOException {
-        server.enqueue(new MockResponse()
-                .setResponseCode(404)
-                .setBody("{\r\n  \"statusCode\": 404,\r\n  \"message\": \"Project not found\"\r\n}"));
-
-        String exceptionMessage = "";
-        try {
-            vrt.start();
-        } catch (TestRunException ex) {
-            exceptionMessage = ex.getMessage();
-        }
-        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Project not found"));
-    }
-
-    @Test
-    public void shouldThrowExceptionIfUnauthorized() throws IOException {
-        server.enqueue(new MockResponse()
-                .setResponseCode(401)
-                .setBody("{\r\n  \"statusCode\": 401,\r\n  \"message\": \"Unauthorized\"\r\n}"));
-
-        String exceptionMessage = "";
-        try {
-            vrt.start();
-        } catch (TestRunException ex) {
-            exceptionMessage = ex.getMessage();
-        }
-        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Unauthorized"));
-    }
-
-    @Test
-    public void shouldThrowExceptionIfForbidden() throws IOException {
-        server.enqueue(new MockResponse()
-                .setResponseCode(403)
-                .setBody("{\r\n  \"statusCode\": 403,\r\n  \"message\": \"Forbidden\"\r\n}"));
-
-        String exceptionMessage = "";
-        try {
-            vrt.start();
-        } catch (TestRunException ex) {
-            exceptionMessage = ex.getMessage();
-        }
-        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Api key not authenticated"));
     }
 
     @Test
@@ -154,7 +94,7 @@ public class VisualRegressionTrackerTest {
 
         RecordedRequest request = server.takeRequest();
         MatcherAssert.assertThat(request.getMethod(), CoreMatchers.is("PATCH"));
-        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
+        MatcherAssert.assertThat(request.getHeader(VisualRegressionTracker.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(Objects.requireNonNull(request.getRequestUrl()).encodedPath(), CoreMatchers.containsString(buildId));
     }
 
@@ -204,13 +144,13 @@ public class VisualRegressionTrackerTest {
         TestRunResponse result = vrt.submitTestRun(name, imageBase64, testRunOptions);
 
         RecordedRequest request = server.takeRequest();
-        MatcherAssert.assertThat(request.getHeader(vrt.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
+        MatcherAssert.assertThat(request.getHeader(VisualRegressionTracker.apiKeyHeaderName), CoreMatchers.is(config.getApiKey()));
         MatcherAssert.assertThat(request.getBody().readUtf8(), CoreMatchers.is(gson.toJson(testRunRequest)));
         MatcherAssert.assertThat(gson.toJson(result), CoreMatchers.is(gson.toJson(testRunResponse)));
     }
 
     @Test
-    public void shouldNotSubmitTestRunIfNotStarted() throws IOException {
+    public void submitTestRunShouldThrowIfNotStarted() throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
         Mockito.when(vrtMocked.isStarted()).thenReturn(false);
 
@@ -224,8 +164,8 @@ public class VisualRegressionTrackerTest {
         MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Visual Regression Tracker has not been started"));
     }
 
-    @DataProvider(name = "shouldTrackThrowExceptionCases")
-    public Object[][] shouldTrackThrowExceptionCases() {
+    @DataProvider(name = "trackShouldThrowExceptionCases")
+    public Object[][] trackShouldThrowExceptionCases() {
         return new Object[][]{
                 {
                         TestRunResponse.builder()
@@ -244,8 +184,8 @@ public class VisualRegressionTrackerTest {
         };
     }
 
-    @Test(dataProvider = "shouldTrackThrowExceptionCases")
-    public void shouldTrackThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
+    @Test(dataProvider = "trackShouldThrowExceptionCases")
+    public void trackShouldThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
         Mockito.when(vrtMocked.submitTestRun(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(testRunResponse);
 
@@ -288,5 +228,51 @@ public class VisualRegressionTrackerTest {
         vrtMocked.track("name", "image");
 
         Mockito.verify(vrtMocked, Mockito.times(1)).track(Mockito.anyString(), Mockito.anyString(), Mockito.any(TestRunOptions.class));
+    }
+
+    @DataProvider(name = "shouldReturnIsStartedCases")
+    public Object[][] shouldReturnIsStartedCases() {
+        return new Object[][]{
+                {null, null, false},
+                {null, "some", false},
+                {"some", null, false},
+                {"some", "some", true},
+        };
+    }
+
+    @Test(dataProvider = "shouldReturnIsStartedCases")
+    public void shouldReturnIsStarted(String buildId, String projectId, boolean expectedResult) {
+        vrt.buildId = buildId;
+        vrt.projectId = projectId;
+
+        boolean result = vrt.isStarted();
+
+        MatcherAssert.assertThat(result, CoreMatchers.is(expectedResult));
+    }
+
+    @Test
+    public void handleRequestShouldThrowIfNotSuccess() throws IOException {
+        String error = "{\n" +
+                "  \"statusCode\": 404,\n" +
+                "  \"message\": \"Project not found\"\n" +
+                "}";
+        Request mockRequest = new Request.Builder()
+                .url(config.getApiUrl())
+                .build();
+
+        String exceptionMessage = "";
+        try {
+            vrt.handleResponse(new Response.Builder()
+                    .request(mockRequest)
+                    .protocol(Protocol.HTTP_2)
+                    .code(401)
+                    .message("Not found")
+                    .body(ResponseBody.create(error, VisualRegressionTracker.JSON))
+                    .build(), Object.class);
+        } catch (TestRunException ex) {
+            exceptionMessage = ex.getMessage();
+        }
+
+        MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is(error));
     }
 }
