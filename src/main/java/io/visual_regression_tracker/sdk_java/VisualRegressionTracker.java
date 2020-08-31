@@ -15,22 +15,19 @@ import java.io.IOException;
 import java.util.Optional;
 
 public class VisualRegressionTracker {
-    private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
-    String apiKeyHeaderName = "apiKey";
-    Gson gson = new Gson();
-    VisualRegressionTrackerConfig visualRegressionTrackerConfig;
-    String buildId;
-    String projectId;
-    OkHttpClient client;
+    protected static final String apiKeyHeaderName = "apiKey";
+    protected static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    protected Gson gson;
+    protected VisualRegressionTrackerConfig visualRegressionTrackerConfig;
+    protected String buildId;
+    protected String projectId;
+    protected OkHttpClient client;
 
     public VisualRegressionTracker(VisualRegressionTrackerConfig visualRegressionTrackerConfig) {
         this.visualRegressionTrackerConfig = visualRegressionTrackerConfig;
 
         this.client = new OkHttpClient();
-    }
-
-    protected boolean isStarted() {
-        return this.buildId != null && this.projectId != null;
+        this.gson = new Gson();
     }
 
     public void start() throws IOException {
@@ -48,20 +45,9 @@ public class VisualRegressionTracker {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.code() == 401) {
-                throw new TestRunException("Unauthorized");
-            }
-            if (response.code() == 403) {
-                throw new TestRunException("Api key not authenticated");
-            }
-            if (response.code() == 404) {
-                throw new TestRunException("Project not found");
-            }
 
-            String responseBody = Optional.ofNullable(response.body())
-                    .orElseThrow(() -> new TestRunException("Cannot get response body"))
-                    .string();
-            BuildResponse buildDTO = gson.fromJson(responseBody, BuildResponse.class);
+            BuildResponse buildDTO = handleResponse(response, BuildResponse.class);
+
             this.buildId = Optional.ofNullable(buildDTO.getId())
                     .orElseThrow(() -> new TestRunException("Build id is null"));
             this.projectId = Optional.ofNullable(buildDTO.getProjectId())
@@ -80,7 +66,32 @@ public class VisualRegressionTracker {
                 .patch(RequestBody.create(JSON, ""))
                 .build();
 
-        client.newCall(request).execute();
+        try (Response response = client.newCall(request).execute()) {
+            handleResponse(response, Object.class);
+        }
+    }
+
+    public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
+        TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
+
+        TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
+                .orElseThrow(() -> new TestRunException("Status is null"));
+
+        if (status.equals(TestRunStatus.NEW)) {
+            throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
+        }
+
+        if (status.equals(TestRunStatus.UNRESOLVED)) {
+            throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
+        }
+    }
+
+    public void track(String name, String imageBase64) throws IOException {
+        this.track(name, imageBase64, TestRunOptions.builder().build());
+    }
+
+    protected boolean isStarted() {
+        return this.buildId != null && this.projectId != null;
     }
 
     protected TestRunResponse submitTestRun(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
@@ -110,29 +121,19 @@ public class VisualRegressionTracker {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            String responseBody = Optional.ofNullable(response.body())
-                    .orElseThrow(() -> new TestRunException("Cannot get response body"))
-                    .string();
-            return gson.fromJson(responseBody, TestRunResponse.class);
+            return handleResponse(response, TestRunResponse.class);
         }
     }
 
-    public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
-        TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
+    protected <T> T handleResponse(Response response, Class<T> classOfT) throws IOException {
+        String responseBody = Optional.ofNullable(response.body())
+                .orElseThrow(() -> new TestRunException("Cannot get response body"))
+                .string();
 
-        TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
-                .orElseThrow(() -> new TestRunException("Status is null"));
-
-        if (status.equals(TestRunStatus.NEW)) {
-            throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
+        if (!response.isSuccessful()) {
+            throw new TestRunException(responseBody);
         }
 
-        if (status.equals(TestRunStatus.UNRESOLVED)) {
-            throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
-        }
-    }
-
-    public void track(String name, String imageBase64) throws IOException {
-        this.track(name, imageBase64, TestRunOptions.builder().build());
+        return gson.fromJson(responseBody, classOfT);
     }
 }
