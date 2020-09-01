@@ -10,4 +10,5 @@ public class VisualRegressionTrackerConfig {
     private String project;
     private String apiKey;
     private String branchName;
+    private Boolean enableSoftAssert;
 }
