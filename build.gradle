@@ -1,5 +1,5 @@
 group 'io.visual-regression-tracker.sdk-java'
-version '4.0.3'
+version '4.1.0'
 
 apply plugin: 'java'
 apply plugin: 'jacoco'
@@ -27,6 +27,7 @@ buildscript {
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.google.code.gson:gson:2.8.6'
+    implementation group: 'org.simplify4u', name: 'slf4j-mock', version: '1.0.2'
     testImplementation group: 'org.testng', name: 'testng', version: '7.1.0'
     testImplementation 'commons-io:commons-io:2.7'
     testImplementation 'org.mockito:mockito-core:3.4.6'

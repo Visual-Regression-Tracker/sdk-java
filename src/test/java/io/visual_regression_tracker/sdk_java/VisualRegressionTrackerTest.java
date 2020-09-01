@@ -16,6 +16,9 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.mockito.Mockito;
+import org.simplify4u.sjf4jmock.LoggerMock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -30,7 +33,8 @@ public class VisualRegressionTrackerTest {
             "http://localhost",
             "733c148e-ef70-4e6d-9ae5-ab22263697cc",
             "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
-            "develop"
+            "develop",
+            false
     );
     private MockWebServer server;
     private VisualRegressionTracker vrt;
@@ -38,6 +42,8 @@ public class VisualRegressionTrackerTest {
     @SneakyThrows
     @BeforeMethod
     public void setup() {
+        LoggerMock.clearInvocations();
+
         server = new MockWebServer();
         server.start();
 
@@ -164,8 +170,8 @@ public class VisualRegressionTrackerTest {
         MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is("Visual Regression Tracker has not been started"));
     }
 
-    @DataProvider(name = "trackShouldThrowExceptionCases")
-    public Object[][] trackShouldThrowExceptionCases() {
+    @DataProvider(name = "trackErrorCases")
+    public Object[][] trackErrorCases() {
         return new Object[][]{
                 {
                         TestRunResponse.builder()
@@ -184,9 +190,10 @@ public class VisualRegressionTrackerTest {
         };
     }
 
-    @Test(dataProvider = "trackShouldThrowExceptionCases")
+    @Test(dataProvider = "trackErrorCases")
     public void trackShouldThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
         VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
+        vrtMocked.visualRegressionTrackerConfig = new VisualRegressionTrackerConfig("", "", "", "", false);
         Mockito.when(vrtMocked.submitTestRun(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(testRunResponse);
 
         Mockito.doCallRealMethod().when(vrtMocked).track(Mockito.anyString(), Mockito.anyString(), Mockito.any());
@@ -197,6 +204,19 @@ public class VisualRegressionTrackerTest {
             exceptionMessage = ex.getMessage();
         }
         MatcherAssert.assertThat(exceptionMessage, CoreMatchers.is(expectedExceptionMessage));
+    }
+
+    @Test(dataProvider = "trackErrorCases")
+    public void trackShouldLogSevere(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
+        Logger loggerMock = LoggerMock.getLoggerMock(VisualRegressionTracker.class);
+        VisualRegressionTracker vrtMocked = Mockito.mock(VisualRegressionTracker.class);
+        vrtMocked.visualRegressionTrackerConfig = new VisualRegressionTrackerConfig("", "", "", "", true);
+        Mockito.when(vrtMocked.submitTestRun(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(testRunResponse);
+
+        Mockito.doCallRealMethod().when(vrtMocked).track(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+        vrtMocked.track("name", "image", TestRunOptions.builder().build());
+
+        Mockito.verify(loggerMock).error(expectedExceptionMessage);
     }
 
     @DataProvider(name = "shouldTrackPassCases")

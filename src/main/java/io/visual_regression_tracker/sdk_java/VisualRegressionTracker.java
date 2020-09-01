@@ -10,13 +10,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
 
+
 public class VisualRegressionTracker {
     protected static final String apiKeyHeaderName = "apiKey";
     protected static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final Logger LOGGER = LoggerFactory.getLogger(VisualRegressionTracker.class);
     protected Gson gson;
     protected VisualRegressionTrackerConfig visualRegressionTrackerConfig;
     protected String buildId;
@@ -48,10 +52,8 @@ public class VisualRegressionTracker {
 
             BuildResponse buildDTO = handleResponse(response, BuildResponse.class);
 
-            this.buildId = Optional.ofNullable(buildDTO.getId())
-                    .orElseThrow(() -> new TestRunException("Build id is null"));
-            this.projectId = Optional.ofNullable(buildDTO.getProjectId())
-                    .orElseThrow(() -> new TestRunException("Project id is null"));
+            this.buildId = buildDTO.getId();
+            this.projectId = buildDTO.getProjectId();
         }
     }
 
@@ -74,15 +76,25 @@ public class VisualRegressionTracker {
     public void track(String name, String imageBase64, TestRunOptions testRunOptions) throws IOException {
         TestRunResponse testResultDTO = this.submitTestRun(name, imageBase64, testRunOptions);
 
-        TestRunStatus status = Optional.ofNullable(testResultDTO.getStatus())
-                .orElseThrow(() -> new TestRunException("Status is null"));
-
-        if (status.equals(TestRunStatus.NEW)) {
-            throw new TestRunException("No baseline: ".concat(testResultDTO.getUrl()));
+        String errorMessage;
+        switch (testResultDTO.getStatus()) {
+            case NEW:
+                errorMessage = "No baseline: ".concat(testResultDTO.getUrl());
+                break;
+            case UNRESOLVED:
+                errorMessage = "Difference found: ".concat(testResultDTO.getUrl());
+                break;
+            default:
+                errorMessage = "";
+                break;
         }
 
-        if (status.equals(TestRunStatus.UNRESOLVED)) {
-            throw new TestRunException("Difference found: ".concat(testResultDTO.getUrl()));
+        if (!errorMessage.isEmpty()) {
+            if (this.visualRegressionTrackerConfig.getEnableSoftAssert()) {
+                LOGGER.error(errorMessage);
+            } else {
+                throw new TestRunException(errorMessage);
+            }
         }
     }
 
