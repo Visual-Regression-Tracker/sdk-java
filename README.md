@@ -1,17 +1,22 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/79dcd96f2be04992bc1059cad60e2e04)](https://www.codacy.com/gh/Visual-Regression-Tracker/sdk-java?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Visual-Regression-Tracker/sdk-java&amp;utm_campaign=Badge_Grade)
+
 ## Gradle
+
 ```yml
 repositories {
     maven { url 'https://jitpack.io' }
 }
 ```
+
 ```yml
 dependencies {
     implementation group: 'com.github.visual-regression-tracker', name: 'sdk-java', version: '${REPLACE_THIS_VALUE}'
 }
 ```
+
 ## Maven
+
 ```xml
 <repositories>
     <repository>
@@ -20,6 +25,7 @@ dependencies {
     </repository>
 </repositories>
 ```
+
 ```xml
 <dependency>
     <groupId>com.github.Visual-Regression-Tracker</groupId>
@@ -32,7 +38,9 @@ dependencies {
 More info about https://jitpack.io/
 
 ## Usage
+
 * Create config
+
 ```java
 VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
     // apiUrl - URL where backend is running 
@@ -45,28 +53,39 @@ VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
     "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
     
     // branch - Current git branch 
-    "develop"
+    "develop",
+    
+    // enableSoftAssert - Log errors instead of exceptions
+    false
 );
 ```
+
 * Create an instance of `VisualRegressionTracker`
+
 ```java
 VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
 ```
+
 * Take a screenshot as String in Base64 format
+
 ```java
 // Selenium example
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
+
 * Track image
 
 Default options
+
 ```java
 visualRegressionTracker.track(
         "Name for test",
         screenshotBase64
 );
 ```
+
 With specific options 
+
 ```java
 visualRegressionTracker.track(
         "Name for test",
