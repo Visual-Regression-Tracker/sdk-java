@@ -93,7 +93,7 @@ public class VisualRegressionTrackerTest {
         vrt.start();
 
         RecordedRequest recordedRequest = server.takeRequest();
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.apiKeyHeaderName), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
@@ -114,7 +114,7 @@ public class VisualRegressionTrackerTest {
 
         RecordedRequest recordedRequest = server.takeRequest();
         assertThat(recordedRequest.getMethod(), is("PATCH"));
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.apiKeyHeaderName), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(Objects.requireNonNull(recordedRequest.getRequestUrl()).encodedPath(), containsString(BUILD_ID));
     }
 
@@ -155,7 +155,7 @@ public class VisualRegressionTrackerTest {
         TestRunResponse result = vrt.submitTestRun(NAME, IMAGE_BASE_64, testRunOptions);
 
         RecordedRequest request = server.takeRequest();
-        assertThat(request.getHeader(VisualRegressionTracker.apiKeyHeaderName), is(config.getApiKey()));
+        assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(request.getBody().readUtf8(), is(gson.toJson(testRunRequest)));
         assertThat(gson.toJson(result), is(gson.toJson(testRunResponse)));
     }
@@ -193,7 +193,7 @@ public class VisualRegressionTrackerTest {
             expectedExceptions = TestRunException.class,
             expectedExceptionsMessageRegExp = "^(Difference found: https://someurl.com/test/123123|No baseline: https://someurl.com/test/123123)$")
     public void trackShouldThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
-        vrtMocked.visualRegressionTrackerConfig = new VisualRegressionTrackerConfig("", "", "", "", false);
+        vrtMocked.configuration = new VisualRegressionTrackerConfig("", "", "", "", false);
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
@@ -203,7 +203,7 @@ public class VisualRegressionTrackerTest {
     @Test(dataProvider = "trackErrorCases")
     public void trackShouldLogSevere(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
         Logger loggerMock = LoggerMock.getLoggerMock(VisualRegressionTracker.class);
-        vrtMocked.visualRegressionTrackerConfig = new VisualRegressionTrackerConfig("", "", "", "", true);
+        vrtMocked.configuration = new VisualRegressionTrackerConfig("", "", "", "", true);
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
