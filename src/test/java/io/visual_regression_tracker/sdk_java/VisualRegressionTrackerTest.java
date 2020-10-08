@@ -255,7 +255,7 @@ public class VisualRegressionTrackerTest {
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString());
         vrtMocked.track("name", "image");
 
-        verify(vrtMocked, Mockito.times(1)).track(anyString(), anyString(), any(TestRunOptions.class));
+        verify(vrtMocked, times(1)).track(anyString(), anyString(), any(TestRunOptions.class));
     }
 
     @DataProvider(name = "shouldReturnIsStartedCases")
