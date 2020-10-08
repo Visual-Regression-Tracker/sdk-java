@@ -1,11 +1,9 @@
 package io.visual_regression_tracker.sdk_java;
 
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
-import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
 public class TestRunResult {
   private final TestRunResponse testRunResponse;
   private final String imageUrl;
