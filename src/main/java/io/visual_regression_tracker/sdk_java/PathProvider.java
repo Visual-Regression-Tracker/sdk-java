@@ -21,4 +21,8 @@ public class PathProvider {
     public String getTestRunPath() {
         return baseApiUrl.concat(TEST_RUNS_PATH);
     }
+
+    public String getImageUrl(String name) {
+        return baseApiUrl.concat("/").concat(name);
+    }
 }
