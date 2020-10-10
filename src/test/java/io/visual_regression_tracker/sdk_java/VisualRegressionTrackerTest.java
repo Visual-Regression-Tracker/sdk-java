@@ -249,7 +249,6 @@ public class VisualRegressionTrackerTest {
         TestRunResult testRunResult = vrtMocked.track("name", "image", TestRunOptions.builder().build());
 
         assertThat(testRunResult.getTestRunResponse(), is(testRunResponse));
-        assertThat(testRunResult.getUrl(), is(testRunResponse.getUrl()));
         assertThat(testRunResult.getImageUrl(), is("backendUrl/".concat(testRunResponse.getImageName())));
         assertThat(testRunResult.getDiffUrl(), is("backendUrl/".concat(testRunResponse.getDiffName())));
         assertThat(testRunResult.getBaselineUrl(), is("backendUrl/".concat(testRunResponse.getBaselineName())));
