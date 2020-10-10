@@ -23,6 +23,9 @@ public class PathProvider {
     }
 
     public String getImageUrl(String name) {
+        if(name.isEmpty()){
+            return null;
+        }
         return baseApiUrl.concat("/").concat(name);
     }
 }
