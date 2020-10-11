@@ -9,8 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class PathProviderTest {
 
-  String apiUrl = "http://localhost:4200";
-  PathProvider pathProvider;
+  private final String apiUrl = "http://localhost:4200";
+  private PathProvider pathProvider;
 
   @BeforeMethod()
   public void setUp() {
