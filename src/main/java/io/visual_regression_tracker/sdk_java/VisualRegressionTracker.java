@@ -84,7 +84,7 @@ public class VisualRegressionTracker {
         log.info("Visual Regression Tracker is stopped for buildId <{}>", buildId);
     }
 
-    public void track(String name, String imageBase64, TestRunOptions testRunOptions)
+    public TestRunResult track(String name, String imageBase64, TestRunOptions testRunOptions)
             throws IOException {
         log.info("Tracking test run <{}> with options <{}> for buildId <{}>", name, testRunOptions, buildId);
         TestRunResponse testResultDTO = submitTestRun(name, imageBase64, testRunOptions);
@@ -109,10 +109,12 @@ public class VisualRegressionTracker {
                 throw new TestRunException(errorMessage);
             }
         }
+
+        return new TestRunResult(testResultDTO, this.paths);
     }
 
-    public void track(String name, String imageBase64) throws IOException {
-        track(name, imageBase64, TestRunOptions.builder().build());
+    public TestRunResult track(String name, String imageBase64) throws IOException {
+        return track(name, imageBase64, TestRunOptions.builder().build());
     }
 
     protected boolean isStarted() {

@@ -1,8 +1,5 @@
 package io.visual_regression_tracker.sdk_java;
 
-import java.io.IOException;
-import java.util.Objects;
-
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
@@ -24,6 +21,9 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 public class VisualRegressionTrackerTest {
 
@@ -67,6 +68,7 @@ public class VisualRegressionTrackerTest {
         this.config.setApiUrl(server.url("/").toString());
         vrt = new VisualRegressionTracker(config);
         vrtMocked = mock(VisualRegressionTracker.class);
+        vrtMocked.paths = new PathProvider("baseApiUrl");
     }
 
     @SneakyThrows
@@ -175,6 +177,9 @@ public class VisualRegressionTrackerTest {
                 {
                         TestRunResponse.builder()
                                        .url("https://someurl.com/test/123123")
+                                        .imageName("imageName")
+                                        .baselineName("baselineName")
+                                        .diffName("diffName")
                                        .status(TestRunStatus.UNRESOLVED)
                                 .build(),
                         "Difference found: https://someurl.com/test/123123"
@@ -182,6 +187,9 @@ public class VisualRegressionTrackerTest {
                 {
                         TestRunResponse.builder()
                                        .url("https://someurl.com/test/123123")
+                                        .imageName("imageName")
+                                        .baselineName("baselineName")
+                                        .diffName("diffName")
                                        .status(TestRunStatus.NEW)
                                 .build(),
                         "No baseline: https://someurl.com/test/123123"
@@ -214,22 +222,36 @@ public class VisualRegressionTrackerTest {
 
     @DataProvider(name = "shouldTrackPassCases")
     public Object[][] shouldTrackPassCases() {
-        return new Object[][] {
-                {
-                        TestRunResponse.builder()
-                                       .url("https://someurl.com/test/123123")
-                                       .status(TestRunStatus.OK)
-                                .build(),
-                }
+    return new Object[][] {
+          {
+            TestRunResponse.builder()
+                .id("someId")
+                .imageName("imageName")
+                .baselineName("baselineName")
+                .diffName("diffName")
+                .diffPercent(12.32f)
+                .diffTollerancePercent(0.01f)
+                .pixelMisMatchCount(1)
+                .merge(false)
+                .url("https://someurl.com/test/123123")
+                .status(TestRunStatus.OK)
+                .build(),
+          }
         };
     }
 
     @Test(dataProvider = "shouldTrackPassCases")
     public void shouldTrackPass(TestRunResponse testRunResponse) throws IOException {
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
+        vrtMocked.paths = new PathProvider("backendUrl");
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
-        vrtMocked.track("name", "image", TestRunOptions.builder().build());
+        TestRunResult testRunResult = vrtMocked.track("name", "image", TestRunOptions.builder().build());
+
+        assertThat(testRunResult.getTestRunResponse(), is(testRunResponse));
+        assertThat(testRunResult.getImageUrl(), is("backendUrl/".concat(testRunResponse.getImageName())));
+        assertThat(testRunResult.getDiffUrl(), is("backendUrl/".concat(testRunResponse.getDiffName())));
+        assertThat(testRunResult.getBaselineUrl(), is("backendUrl/".concat(testRunResponse.getBaselineName())));
     }
 
     @Test()
@@ -237,7 +259,7 @@ public class VisualRegressionTrackerTest {
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString());
         vrtMocked.track("name", "image");
 
-        verify(vrtMocked, Mockito.times(1)).track(anyString(), anyString(), any(TestRunOptions.class));
+        verify(vrtMocked, times(1)).track(anyString(), anyString(), any(TestRunOptions.class));
     }
 
     @DataProvider(name = "shouldReturnIsStartedCases")
