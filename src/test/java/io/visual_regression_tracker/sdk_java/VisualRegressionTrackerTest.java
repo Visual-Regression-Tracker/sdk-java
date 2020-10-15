@@ -1,5 +1,9 @@
 package io.visual_regression_tracker.sdk_java;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
@@ -13,9 +17,7 @@ import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.mockito.Mockito;
-import org.simplify4u.sjf4jmock.LoggerMock;
-import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -59,8 +61,6 @@ public class VisualRegressionTrackerTest {
     @SneakyThrows
     @BeforeMethod
     public void setup() {
-        LoggerMock.clearInvocations();
-
         server = new MockWebServer();
         server.start();
 
@@ -81,16 +81,16 @@ public class VisualRegressionTrackerTest {
     @Test
     public void shouldStartBuild() throws IOException, InterruptedException {
         BuildRequest buildRequest = BuildRequest.builder()
-                                                .branchName(this.config.getBranchName())
-                                                .project(this.config.getProject())
-                                                .build();
+                .branchName(this.config.getBranchName())
+                .project(this.config.getProject())
+                .build();
         BuildResponse buildResponse = BuildResponse.builder()
-                                                   .id(BUILD_ID)
-                                                   .projectId(PROJECT_ID)
-                                                   .build();
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .build();
         server.enqueue(new MockResponse()
-                               .setResponseCode(200)
-                               .setBody(gson.toJson(buildResponse)));
+                .setResponseCode(200)
+                .setBody(gson.toJson(buildResponse)));
 
         vrt.start();
 
@@ -106,11 +106,11 @@ public class VisualRegressionTrackerTest {
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
         BuildResponse buildResponse = BuildResponse.builder()
-                                                   .id(BUILD_ID)
-                                                   .build();
+                .id(BUILD_ID)
+                .build();
         server.enqueue(new MockResponse()
-                               .setResponseCode(200)
-                               .setBody(gson.toJson(buildResponse)));
+                .setResponseCode(200)
+                .setBody(gson.toJson(buildResponse)));
 
         vrt.stop();
 
@@ -129,27 +129,27 @@ public class VisualRegressionTrackerTest {
     @Test
     public void shouldSubmitTestRun() throws IOException, InterruptedException {
         TestRunOptions testRunOptions = TestRunOptions.builder()
-                                                      .device("Device")
-                                                      .os("OS")
-                                                      .browser("Browser")
-                                                      .viewport("Viewport")
-                                                      .diffTollerancePercent(0.5f)
-                                                      .build();
+                .device("Device")
+                .os("OS")
+                .browser("Browser")
+                .viewport("Viewport")
+                .diffTollerancePercent(0.5f)
+                .build();
         TestRunRequest testRunRequest = TestRunRequest.builder()
-                                                      .projectId(PROJECT_ID)
-                                                      .branchName(config.getBranchName())
-                                                      .buildId(BUILD_ID)
-                                                      .name(NAME)
-                                                      .imageBase64(IMAGE_BASE_64)
-                                                      .os(testRunOptions.getOs())
-                                                      .browser(testRunOptions.getBrowser())
-                                                      .viewport(testRunOptions.getViewport())
-                                                      .device(testRunOptions.getDevice())
-                                                      .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
-                                                      .build();
+                .projectId(PROJECT_ID)
+                .branchName(config.getBranchName())
+                .buildId(BUILD_ID)
+                .name(NAME)
+                .imageBase64(IMAGE_BASE_64)
+                .os(testRunOptions.getOs())
+                .browser(testRunOptions.getBrowser())
+                .viewport(testRunOptions.getViewport())
+                .device(testRunOptions.getDevice())
+                .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
+                .build();
         TestRunResponse testRunResponse = TestRunResponse.builder()
-                                                         .status(TestRunStatus.UNRESOLVED)
-                                                         .build();
+                .status(TestRunStatus.UNRESOLVED)
+                .build();
         server.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
@@ -173,24 +173,24 @@ public class VisualRegressionTrackerTest {
 
     @DataProvider(name = "trackErrorCases")
     public Object[][] trackErrorCases() {
-        return new Object[][] {
+        return new Object[][]{
                 {
                         TestRunResponse.builder()
-                                       .url("https://someurl.com/test/123123")
-                                        .imageName("imageName")
-                                        .baselineName("baselineName")
-                                        .diffName("diffName")
-                                       .status(TestRunStatus.UNRESOLVED)
+                                .url("https://someurl.com/test/123123")
+                                .imageName("imageName")
+                                .baselineName("baselineName")
+                                .diffName("diffName")
+                                .status(TestRunStatus.UNRESOLVED)
                                 .build(),
                         "Difference found: https://someurl.com/test/123123"
                 },
                 {
                         TestRunResponse.builder()
-                                       .url("https://someurl.com/test/123123")
-                                        .imageName("imageName")
-                                        .baselineName("baselineName")
-                                        .diffName("diffName")
-                                       .status(TestRunStatus.NEW)
+                                .url("https://someurl.com/test/123123")
+                                .imageName("imageName")
+                                .baselineName("baselineName")
+                                .diffName("diffName")
+                                .status(TestRunStatus.NEW)
                                 .build(),
                         "No baseline: https://someurl.com/test/123123"
                 }
@@ -210,33 +210,39 @@ public class VisualRegressionTrackerTest {
 
     @Test(dataProvider = "trackErrorCases")
     public void trackShouldLogSevere(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
-        Logger loggerMock = LoggerMock.getLoggerMock(VisualRegressionTracker.class);
+        Logger loggerMock = (Logger) LoggerFactory.getLogger(VisualRegressionTracker.class);
+        // create and start a ListAppender
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+        // add the appender to the logger
+        loggerMock.addAppender(listAppender);
         vrtMocked.configuration = new VisualRegressionTrackerConfig("", "", "", "", true);
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
         vrtMocked.track("name", "image", TestRunOptions.builder().build());
 
-        verify(loggerMock).error(expectedExceptionMessage);
+        assertThat(listAppender.list.get(1).getFormattedMessage(), is(expectedExceptionMessage));
+        assertThat(listAppender.list.get(1).getLevel(), is(Level.ERROR));
     }
 
     @DataProvider(name = "shouldTrackPassCases")
     public Object[][] shouldTrackPassCases() {
-    return new Object[][] {
-          {
-            TestRunResponse.builder()
-                .id("someId")
-                .imageName("imageName")
-                .baselineName("baselineName")
-                .diffName("diffName")
-                .diffPercent(12.32f)
-                .diffTollerancePercent(0.01f)
-                .pixelMisMatchCount(1)
-                .merge(false)
-                .url("https://someurl.com/test/123123")
-                .status(TestRunStatus.OK)
-                .build(),
-          }
+        return new Object[][]{
+                {
+                        TestRunResponse.builder()
+                                .id("someId")
+                                .imageName("imageName")
+                                .baselineName("baselineName")
+                                .diffName("diffName")
+                                .diffPercent(12.32f)
+                                .diffTollerancePercent(0.01f)
+                                .pixelMisMatchCount(1)
+                                .merge(false)
+                                .url("https://someurl.com/test/123123")
+                                .status(TestRunStatus.OK)
+                                .build(),
+                }
         };
     }
 
@@ -264,7 +270,7 @@ public class VisualRegressionTrackerTest {
 
     @DataProvider(name = "shouldReturnIsStartedCases")
     public Object[][] shouldReturnIsStartedCases() {
-        return new Object[][] {
+        return new Object[][]{
                 {null, null, false},
                 {null, "some", false},
                 {"some", null, false},
@@ -285,22 +291,22 @@ public class VisualRegressionTrackerTest {
     @Test
     public void handleRequestShouldThrowIfNotSuccess() throws IOException {
         String error = "{\n" +
-                       "  \"statusCode\": 404,\n" +
-                       "  \"message\": \"Project not found\"\n" +
-                       "}";
+                "  \"statusCode\": 404,\n" +
+                "  \"message\": \"Project not found\"\n" +
+                "}";
         Request mockRequest = new Request.Builder()
-                                      .url(config.getApiUrl())
-                                      .build();
+                .url(config.getApiUrl())
+                .build();
 
         String exceptionMessage = "";
         try {
             vrt.handleResponse(new Response.Builder()
-                                       .request(mockRequest)
-                                       .protocol(Protocol.HTTP_2)
-                                       .code(404)
-                                       .message("Not found")
-                                       .body(ResponseBody.create(error, VisualRegressionTracker.JSON))
-                                       .build(), Object.class);
+                    .request(mockRequest)
+                    .protocol(Protocol.HTTP_2)
+                    .code(404)
+                    .message("Not found")
+                    .body(ResponseBody.create(error, VisualRegressionTracker.JSON))
+                    .build(), Object.class);
         } catch (TestRunException ex) {
             exceptionMessage = ex.getMessage();
         }

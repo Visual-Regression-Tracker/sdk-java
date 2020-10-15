@@ -27,10 +27,10 @@ buildscript {
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.google.code.gson:gson:2.8.6'
-    testImplementation group: 'org.simplify4u', name: 'slf4j-mock', version: '1.0.2'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
     testImplementation group: 'org.testng', name: 'testng', version: '7.1.0'
     testImplementation 'commons-io:commons-io:2.7'
-    testImplementation 'org.mockito:mockito-core:3.4.6'
+    testImplementation 'org.mockito:mockito-core:3.5.13'
     testImplementation "com.squareup.okhttp3:mockwebserver:4.8.1"
 }
 
