@@ -32,8 +32,12 @@ public class VisualRegressionTracker {
     public VisualRegressionTracker(VisualRegressionTrackerConfig trackerConfig) {
         configuration = trackerConfig;
         paths = new PathProvider(trackerConfig.getApiUrl());
-        client = new OkHttpClient();
         gson = new Gson();
+        client = new OkHttpClient.Builder()
+                .connectTimeout(10L, TimeUnit.SECONDS)
+                .readTimeout(10L, TimeUnit.SECONDS)
+                .writeTimeout(10L, TimeUnit.SECONDS)
+                .build();
     }
 
     public VisualRegressionTracker(VisualRegressionTrackerConfig trackerConfig, long timeoutInSeconds) {
