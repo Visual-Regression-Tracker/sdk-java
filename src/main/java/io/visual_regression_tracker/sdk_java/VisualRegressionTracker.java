@@ -38,10 +38,12 @@ public class VisualRegressionTracker {
     public void start() throws IOException {
         String projectName = configuration.getProject();
         String branch = configuration.getBranchName();
+        String ciBuildId = configuration.getCiBuildId();
 
         BuildRequest newBuild = BuildRequest.builder()
                                             .branchName(branch)
                                             .project(projectName)
+                                            .ciBuildId(ciBuildId)
                                             .build();
 
         RequestBody body = RequestBody.create(JSON, gson.toJson(newBuild));
@@ -61,8 +63,8 @@ public class VisualRegressionTracker {
         buildId = buildResponse.getId();
         projectId = buildResponse.getProjectId();
 
-        log.info("Visual Regression Tracker is started for project <{}>: buildId <{}>, projectId <{}>",
-                 projectName, projectId, buildId);
+        log.info("Visual Regression Tracker is started for project <{}>: buildId: <{}>, projectId: <{}>, ciBuildId: <{}>",
+                 projectName, projectId, buildId, buildResponse.getCiBuildId());
     }
 
     public void stop() throws IOException {

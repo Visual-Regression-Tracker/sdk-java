@@ -8,4 +8,5 @@ import lombok.Getter;
 public class BuildRequest {
     private final String project;
     private final String branchName;
+    private final String ciBuildId;
 }
