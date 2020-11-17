@@ -43,18 +43,13 @@ public class VisualRegressionTrackerTest {
 
     private final static String BUILD_ID = "123123";
     private final static String PROJECT_ID = "projectId";
+    private final static String CI_BUILD_ID = "123456789";
     private final static String NAME = "Test name";
     private final static String IMAGE_BASE_64 = "image";
 
     private final Gson gson = new Gson();
-    private final VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-            "http://localhost",
-            "733c148e-ef70-4e6d-9ae5-ab22263697cc",
-            "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
-            "develop",
-            false
-    );
 
+    private VisualRegressionTrackerConfig config;
     private MockWebServer server;
     private VisualRegressionTracker vrt;
     private VisualRegressionTracker vrtMocked;
@@ -66,7 +61,13 @@ public class VisualRegressionTrackerTest {
         server.start();
 
         // target to mock server
-        this.config.setApiUrl(server.url("/").toString());
+        config = new VisualRegressionTrackerConfig(
+                server.url("/").toString(),
+                "733c148e-ef70-4e6d-9ae5-ab22263697cc",
+                "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
+                "develop",
+                false,
+                CI_BUILD_ID);
         vrt = new VisualRegressionTracker(config);
         vrtMocked = mock(VisualRegressionTracker.class);
         vrtMocked.paths = new PathProvider("baseApiUrl");
@@ -84,10 +85,12 @@ public class VisualRegressionTrackerTest {
         BuildRequest buildRequest = BuildRequest.builder()
                                                 .branchName(this.config.getBranchName())
                                                 .project(this.config.getProject())
+                                                .ciBuildId(this.config.getCiBuildId())
                                                 .build();
         BuildResponse buildResponse = BuildResponse.builder()
                                                    .id(BUILD_ID)
                                                    .projectId(PROJECT_ID)
+                                                   .ciBuildId(CI_BUILD_ID)
                                                    .build();
         server.enqueue(new MockResponse()
                                .setResponseCode(200)
@@ -209,7 +212,15 @@ public class VisualRegressionTrackerTest {
             expectedExceptions = TestRunException.class,
             expectedExceptionsMessageRegExp = "^(Difference found: https://someurl.com/test/123123|No baseline: https://someurl.com/test/123123)$")
     public void trackShouldThrowException(TestRunResponse testRunResponse, String expectedExceptionMessage) throws IOException {
-        vrtMocked.configuration = new VisualRegressionTrackerConfig("", "", "", "", false);
+        vrtMocked.configuration = VisualRegressionTrackerConfig.builder()
+                                                               .apiUrl("")
+                                                               .project("")
+                                                               .apiKey("")
+                                                               .branchName("")
+                                                               .enableSoftAssert(false)
+                                                               .ciBuildId("")
+                                                               .build();
+
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
@@ -224,7 +235,14 @@ public class VisualRegressionTrackerTest {
         listAppender.start();
         // add the appender to the logger
         loggerMock.addAppender(listAppender);
-        vrtMocked.configuration = new VisualRegressionTrackerConfig("", "", "", "", true);
+        vrtMocked.configuration = VisualRegressionTrackerConfig.builder()
+                                                               .apiUrl("")
+                                                               .project("")
+                                                               .apiKey("")
+                                                               .branchName("")
+                                                               .enableSoftAssert(true)
+                                                               .ciBuildId("")
+                                                               .build();
         when(vrtMocked.submitTestRun(anyString(), anyString(), any())).thenReturn(testRunResponse);
 
         doCallRealMethod().when(vrtMocked).track(anyString(), anyString(), any());
