@@ -138,6 +138,7 @@ public class VisualRegressionTracker {
                                                   .viewport(testRunOptions.getViewport())
                                                   .device(testRunOptions.getDevice())
                                                   .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
+                                                  .ignoredAreas(testRunOptions.getIgnoredAreas())
                                                   .build();
 
         RequestBody body = RequestBody.create(JSON, gson.toJson(newTestRun));
