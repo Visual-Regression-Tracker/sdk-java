@@ -2,7 +2,7 @@ package io.visual_regression_tracker.sdk_java.request;
 
 import java.util.List;
 
-import io.visual_regression_tracker.sdk_java.IgnoredArea;
+import io.visual_regression_tracker.sdk_java.IgnoreAreas;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,5 +19,5 @@ public class TestRunRequest {
     private final String device;
     private final Float diffTollerancePercent;
     private final String branchName;
-    private final List<IgnoredArea> ignoredAreas;
+    private final List<IgnoreAreas> ignoreAreas;
 }

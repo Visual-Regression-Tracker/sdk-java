@@ -13,5 +13,5 @@ public class TestRunOptions {
     private final String viewport;
     private final String device;
     private final Float diffTollerancePercent;
-    private final List<IgnoredArea> ignoredAreas;
+    private final List<IgnoreAreas> ignoreAreas;
 }

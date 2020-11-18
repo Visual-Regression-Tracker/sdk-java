@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Builder
 @Data
-public class IgnoredArea {
+public class IgnoreAreas {
 
     private final Long x;
     private final Long y;
