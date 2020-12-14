@@ -56,7 +56,14 @@ VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
     "develop",
     
     // enableSoftAssert - Log errors instead of exceptions
-    false
+    false,
+ 
+    // ciBuildId - id of the build in CI system
+    "CI_BUILD_ID",
+    
+    // httpTimeoutInSeconds - define http socket timeout in seconds (default 10s)
+    15
+
 );
 ```
 
