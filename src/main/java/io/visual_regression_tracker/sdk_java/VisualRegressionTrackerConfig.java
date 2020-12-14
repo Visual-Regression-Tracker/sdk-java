@@ -24,4 +24,6 @@ public class VisualRegressionTrackerConfig {
     private Boolean enableSoftAssert = false;
     @Builder.Default
     private String ciBuildId = null;
+    @Builder.Default
+    private int httpTimeoutInSeconds = 10;
 }
