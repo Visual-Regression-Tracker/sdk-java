@@ -2,6 +2,7 @@ package io.visual_regression_tracker.sdk_java;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
@@ -31,7 +32,11 @@ public class VisualRegressionTracker {
     public VisualRegressionTracker(VisualRegressionTrackerConfig trackerConfig) {
         configuration = trackerConfig;
         paths = new PathProvider(trackerConfig.getApiUrl());
-        client = new OkHttpClient();
+        client = new OkHttpClient.Builder()
+                .connectTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
+                .readTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
+                .writeTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
+                .build();
         gson = new Gson();
     }
 

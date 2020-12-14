@@ -1,8 +1,10 @@
 package io.visual_regression_tracker.sdk_java;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -46,6 +48,7 @@ public class VisualRegressionTrackerTest {
     private final static String CI_BUILD_ID = "123456789";
     private final static String NAME = "Test name";
     private final static String IMAGE_BASE_64 = "image";
+    private final static int HTTP_TIMOUT = 1;
 
     private final Gson gson = new Gson();
 
@@ -67,7 +70,8 @@ public class VisualRegressionTrackerTest {
                 "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
                 "develop",
                 false,
-                CI_BUILD_ID);
+                CI_BUILD_ID,
+                HTTP_TIMOUT);
         vrt = new VisualRegressionTracker(config);
         vrtMocked = mock(VisualRegressionTracker.class);
         vrtMocked.paths = new PathProvider("baseApiUrl");
@@ -338,5 +342,45 @@ public class VisualRegressionTrackerTest {
         }
 
         assertThat(exceptionMessage, is(error));
+    }
+
+    @Test
+    public void httpTimoutWorks() throws IOException, InterruptedException {
+        BuildResponse buildResponse = BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .ciBuildId(CI_BUILD_ID)
+                .build();
+        String json = gson.toJson(buildResponse);
+        //body size is 97 bytes, http timeout is 1s, set body read delay to 0.9s, wait that vrt get all values correctly
+        server.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMOUT * 1000 - 100, TimeUnit.MILLISECONDS)
+                .setResponseCode(200)
+                .setBody(json));
+
+        vrt.start();
+
+        server.takeRequest();
+
+        assertThat(vrt.buildId, is(BUILD_ID));
+        assertThat(vrt.projectId, is(PROJECT_ID));
+    }
+
+    @Test(expectedExceptions = SocketTimeoutException.class,
+            expectedExceptionsMessageRegExp = "^(timeout|Read timed out)$")
+    public void httpTimoutElapsed() throws IOException, InterruptedException {
+        BuildResponse buildResponse = BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .ciBuildId(CI_BUILD_ID)
+                .build();
+        String json = gson.toJson(buildResponse);
+        //body size is 97 bytes, http timeout is 1s, set body read delay to 1s, wait for error
+        server.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMOUT, TimeUnit.SECONDS)
+                .setResponseCode(200)
+                .setBody(json));
+
+        vrt.start();
+
+        server.takeRequest();
     }
 }
