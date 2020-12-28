@@ -40,7 +40,7 @@ public class VisualRegressionTracker {
         gson = new Gson();
     }
 
-    public void start() throws IOException {
+    public BuildResponse start() throws IOException {
         String projectName = configuration.getProject();
         String branch = configuration.getBranchName();
         String ciBuildId = configuration.getCiBuildId();
@@ -70,6 +70,7 @@ public class VisualRegressionTracker {
 
         log.info("Visual Regression Tracker is started for project <{}>: buildId: <{}>, projectId: <{}>, ciBuildId: <{}>",
                  projectName, projectId, buildId, buildResponse.getCiBuildId());
+        return buildResponse;
     }
 
     public void stop() throws IOException {

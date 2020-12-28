@@ -100,13 +100,16 @@ public class VisualRegressionTrackerTest {
                                .setResponseCode(200)
                                .setBody(gson.toJson(buildResponse)));
 
-        vrt.start();
+        BuildResponse result = vrt.start();
 
         RecordedRequest recordedRequest = server.takeRequest();
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
+        assertThat(result.getId(), is(BUILD_ID));
+        assertThat(result.getProjectId(), is(PROJECT_ID));
+        assertThat(result.getCiBuildId(), is(CI_BUILD_ID));
     }
 
     @Test
