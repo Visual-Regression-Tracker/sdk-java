@@ -15,6 +15,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 enum METHOD {
+    GET,
     POST,
     PATCH
 }
@@ -141,23 +142,24 @@ public class VisualRegressionTracker {
                 .header(API_KEY_HEADER, configuration.getApiKey())
                 .header("Content-Type", "application/json;charset=UTF-8")
                 .uri(URI.create(url));
-        HttpRequest request;
-        switch (method) {
-            case PATCH:
-                request = requestBuilder.method("PATCH", body).build();
-                break;
-            case POST:
-                request = requestBuilder.POST(body).build();
-                break;
-            default:
-                throw new IllegalStateException("Not implemented: " + method);
-        }
+        HttpRequest request = getRequest(method, body, requestBuilder);
         HttpResponse<String> response = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
                 .build()
                 .send(request, HttpResponse.BodyHandlers.ofString());
         return response;
+    }
+
+    protected HttpRequest getRequest(METHOD method, HttpRequest.BodyPublisher body, HttpRequest.Builder requestBuilder) {
+        switch (method) {
+            case PATCH:
+                return requestBuilder.method("PATCH", body).build();
+            case POST:
+                return requestBuilder.POST(body).build();
+            default:
+                throw new UnsupportedOperationException("This method is not yet supported.");
+        }
     }
 
     protected <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT) {
