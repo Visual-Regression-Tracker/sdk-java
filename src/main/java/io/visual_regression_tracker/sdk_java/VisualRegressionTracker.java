@@ -68,7 +68,7 @@ public class VisualRegressionTracker {
         buildId = buildResponse.getId();
         projectId = buildResponse.getProjectId();
 
-        log.info("Visual Regression Tracker is started for project <{}>: buildId: <{}>, projectId: <{}>, ciBuildId: <{}>",
+        log.info("Visual Regression Tracker is started for project <{}>: projectId: <{}>, buildId: <{}>, ciBuildId: <{}>",
                  projectName, projectId, buildId, buildResponse.getCiBuildId());
         return buildResponse;
     }
