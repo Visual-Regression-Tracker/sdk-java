@@ -1,68 +1,55 @@
 package io.visual_regression_tracker.sdk_java;
 
-import java.io.IOException;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+enum METHOD {
+    GET,
+    POST,
+    PATCH
+}
 
 @Slf4j
 public class VisualRegressionTracker {
 
     private static final String TRACKER_NOT_STARTED = "Visual Regression Tracker has not been started";
     protected static final String API_KEY_HEADER = "apiKey";
-    protected static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     protected Gson gson;
     protected VisualRegressionTrackerConfig configuration;
     protected PathProvider paths;
     protected String buildId;
     protected String projectId;
-    protected OkHttpClient client;
 
     public VisualRegressionTracker(VisualRegressionTrackerConfig trackerConfig) {
         configuration = trackerConfig;
         paths = new PathProvider(trackerConfig.getApiUrl());
-        client = new OkHttpClient.Builder()
-                .connectTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
-                .readTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
-                .writeTimeout(configuration.getHttpTimeoutInSeconds(), TimeUnit.SECONDS)
-                .build();
         gson = new Gson();
     }
 
-    public BuildResponse start() throws IOException {
+    public BuildResponse start() throws IOException, InterruptedException {
         String projectName = configuration.getProject();
         String branch = configuration.getBranchName();
         String ciBuildId = configuration.getCiBuildId();
 
         BuildRequest newBuild = BuildRequest.builder()
-                                            .branchName(branch)
-                                            .project(projectName)
-                                            .ciBuildId(ciBuildId)
-                                            .build();
-
-        RequestBody body = RequestBody.create(JSON, gson.toJson(newBuild));
-
-        Request request = new Request.Builder()
-                                  .url(paths.getBuildPath())
-                                  .addHeader(API_KEY_HEADER, configuration.getApiKey())
-                                  .post(body)
-                                  .build();
-
+                .branchName(branch)
+                .project(projectName)
+                .ciBuildId(ciBuildId)
+                .build();
         log.info("Starting Visual Regression Tracker for project <{}> and branch <{}>", projectName, branch);
-
-        Response response = client.newCall(request).execute();
-
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(newBuild));
+        HttpResponse<String> response = getResponse(METHOD.POST, paths.getBuildPath(), body);
         BuildResponse buildResponse = handleResponse(response, BuildResponse.class);
 
         buildId = buildResponse.getId();
@@ -73,27 +60,22 @@ public class VisualRegressionTracker {
         return buildResponse;
     }
 
-    public void stop() throws IOException {
+    public void stop() throws IOException, InterruptedException {
         if (!isStarted()) {
             throw new TestRunException(TRACKER_NOT_STARTED);
         }
 
-        Request request = new Request.Builder()
-                                  .url(paths.getBuildPathForBuild(buildId))
-                                  .addHeader(API_KEY_HEADER, configuration.getApiKey())
-                                  .patch(RequestBody.create(JSON, ""))
-                                  .build();
-
         log.info("Stopping Visual Regression Tracker for buildId <{}>", buildId);
 
-        Response response = client.newCall(request).execute();
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("");
+        HttpResponse<String> response = getResponse(METHOD.PATCH, paths.getBuildPathForBuild(buildId), body);
         handleResponse(response, Object.class);
 
         log.info("Visual Regression Tracker is stopped for buildId <{}>", buildId);
     }
 
     public TestRunResult track(String name, String imageBase64, TestRunOptions testRunOptions)
-            throws IOException {
+            throws IOException, InterruptedException {
         log.info("Tracking test run <{}> with options <{}> for buildId <{}>", name, testRunOptions, buildId);
         TestRunResponse testResultDTO = submitTestRun(name, imageBase64, testRunOptions);
 
@@ -121,7 +103,7 @@ public class VisualRegressionTracker {
         return new TestRunResult(testResultDTO, this.paths);
     }
 
-    public TestRunResult track(String name, String imageBase64) throws IOException {
+    public TestRunResult track(String name, String imageBase64) throws IOException, InterruptedException {
         return track(name, imageBase64, TestRunOptions.builder().build());
     }
 
@@ -130,46 +112,61 @@ public class VisualRegressionTracker {
     }
 
     protected TestRunResponse submitTestRun(String name, String imageBase64,
-                                            TestRunOptions testRunOptions) throws IOException {
+                                            TestRunOptions testRunOptions) throws IOException, InterruptedException {
         if (!isStarted()) {
             throw new TestRunException(TRACKER_NOT_STARTED);
         }
 
         TestRunRequest newTestRun = TestRunRequest.builder()
-                                                  .projectId(projectId)
-                                                  .buildId(buildId)
-                                                  .branchName(configuration.getBranchName())
-                                                  .name(name)
-                                                  .imageBase64(imageBase64)
-                                                  .os(testRunOptions.getOs())
-                                                  .browser(testRunOptions.getBrowser())
-                                                  .viewport(testRunOptions.getViewport())
-                                                  .device(testRunOptions.getDevice())
-                                                  .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
-                                                  .ignoreAreas(testRunOptions.getIgnoreAreas())
-                                                  .build();
+                .projectId(projectId)
+                .buildId(buildId)
+                .branchName(configuration.getBranchName())
+                .name(name)
+                .imageBase64(imageBase64)
+                .os(testRunOptions.getOs())
+                .browser(testRunOptions.getBrowser())
+                .viewport(testRunOptions.getViewport())
+                .device(testRunOptions.getDevice())
+                .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
+                .ignoreAreas(testRunOptions.getIgnoreAreas())
+                .build();
 
-        RequestBody body = RequestBody.create(JSON, gson.toJson(newTestRun));
-
-        Request request = new Request.Builder()
-                                  .url(paths.getTestRunPath())
-                                  .addHeader(API_KEY_HEADER, configuration.getApiKey())
-                                  .post(body)
-                                  .build();
-
-        Response response = client.newCall(request).execute();
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(newTestRun));
+        HttpResponse<String> response = getResponse(METHOD.POST, paths.getTestRunPath(), body);
         return handleResponse(response, TestRunResponse.class);
     }
 
-    protected <T> T handleResponse(Response response, Class<T> classOfT) throws IOException {
-        String responseBody = Optional.ofNullable(response.body())
-                                      .orElseThrow(() -> new TestRunException("Cannot get response body"))
-                                      .string();
+    private HttpResponse<String> getResponse(METHOD method, String url, HttpRequest.BodyPublisher body) throws IOException, InterruptedException {
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .timeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
+                .header(API_KEY_HEADER, configuration.getApiKey())
+                .header("Content-Type", "application/json;charset=UTF-8")
+                .uri(URI.create(url));
+        HttpRequest request = getRequest(method, body, requestBuilder);
+        HttpResponse<String> response = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
+                .build()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+        return response;
+    }
 
-        if (!response.isSuccessful()) {
+    protected HttpRequest getRequest(METHOD method, HttpRequest.BodyPublisher body, HttpRequest.Builder requestBuilder) {
+        switch (method) {
+            case PATCH:
+                return requestBuilder.method("PATCH", body).build();
+            case POST:
+                return requestBuilder.POST(body).build();
+            default:
+                throw new UnsupportedOperationException("This method is not yet supported.");
+        }
+    }
+
+    protected <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT) {
+        String responseBody = response.body();
+        if (!String.valueOf(response.statusCode()).startsWith("2")) {
             throw new TestRunException(responseBody);
         }
-
         return gson.fromJson(responseBody, classOfT);
     }
 }
