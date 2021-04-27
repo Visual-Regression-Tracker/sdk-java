@@ -60,7 +60,7 @@ public class VisualRegressionTracker {
         return buildResponse;
     }
 
-    public void stop() throws IOException, InterruptedException {
+    public BuildResponse stop() throws IOException, InterruptedException {
         if (!isStarted()) {
             throw new TestRunException(TRACKER_NOT_STARTED);
         }
@@ -69,9 +69,10 @@ public class VisualRegressionTracker {
 
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("");
         HttpResponse<String> response = getResponse(METHOD.PATCH, paths.getBuildPathForBuild(buildId), body);
-        handleResponse(response, Object.class);
+        BuildResponse vrtStopResponse = handleResponse(response, BuildResponse.class);
 
         log.info("Visual Regression Tracker is stopped for buildId <{}>", buildId);
+        return vrtStopResponse;
     }
 
     public TestRunResult track(String name, String imageBase64, TestRunOptions testRunOptions)
