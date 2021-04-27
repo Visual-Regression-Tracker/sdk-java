@@ -46,30 +46,30 @@ public class VisualRegressionTrackerTest {
     private final static String CI_BUILD_ID = "123456789";
     private final static String NAME = "Test name";
     private final static String IMAGE_BASE_64 = "image";
-    private final static int HTTP_TIMOUT = 1;
+    private final static int HTTP_TIMEOUT = 1;
 
     private final Gson gson = new Gson();
 
     private VisualRegressionTrackerConfig config;
-    private MockWebServer server;
+    private MockWebServer mockWebServer;
     private VisualRegressionTracker vrt;
     private VisualRegressionTracker vrtMocked;
 
     @SneakyThrows
     @BeforeMethod
     public void setup() {
-        server = new MockWebServer();
-        server.start();
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
 
         // target to mock server
         config = new VisualRegressionTrackerConfig(
-                server.url("/").toString(),
+                mockWebServer.url("/").toString(),
                 "733c148e-ef70-4e6d-9ae5-ab22263697cc",
                 "XHGDZDFD3GMJDNM87JKEMP0JS1G5",
                 "develop",
                 false,
                 CI_BUILD_ID,
-                HTTP_TIMOUT);
+                HTTP_TIMEOUT);
         vrt = new VisualRegressionTracker(config);
         vrtMocked = mock(VisualRegressionTracker.class);
         vrtMocked.paths = new PathProvider("baseApiUrl");
@@ -78,7 +78,7 @@ public class VisualRegressionTrackerTest {
     @SneakyThrows
     @AfterMethod
     public void tearDown() {
-        server.shutdown();
+        mockWebServer.shutdown();
         reset(vrtMocked);
     }
 
@@ -94,13 +94,13 @@ public class VisualRegressionTrackerTest {
                 .projectId(PROJECT_ID)
                 .ciBuildId(CI_BUILD_ID)
                 .build();
-        server.enqueue(new MockResponse()
+        mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setBody(gson.toJson(buildResponse)));
 
         BuildResponse result = vrt.start();
 
-        RecordedRequest recordedRequest = server.takeRequest();
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
         assertThat(vrt.buildId, is(BUILD_ID));
@@ -116,17 +116,25 @@ public class VisualRegressionTrackerTest {
         vrt.projectId = PROJECT_ID;
         BuildResponse buildResponse = BuildResponse.builder()
                 .id(BUILD_ID)
+                .passedCount(1)
+                .unresolvedCount(2)
+                .isRunning(false)
+                .status("unresolved")
                 .build();
-        server.enqueue(new MockResponse()
+        mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setBody(gson.toJson(buildResponse)));
 
-        vrt.stop();
+        BuildResponse actualBuildResponse = vrt.stop();
 
-        RecordedRequest recordedRequest = server.takeRequest();
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getMethod(), is("PATCH"));
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(Objects.requireNonNull(recordedRequest.getRequestUrl()).encodedPath(), containsString(BUILD_ID));
+        assertThat(actualBuildResponse.isRunning(), is(false));
+        assertThat(actualBuildResponse.getStatus(), containsString("unresolved"));
+        assertThat(actualBuildResponse.getPassedCount(), is(1));
+        assertThat(actualBuildResponse.getUnresolvedCount(), is(2));
     }
 
     @Test(expectedExceptions = TestRunException.class,
@@ -166,13 +174,13 @@ public class VisualRegressionTrackerTest {
         TestRunResponse testRunResponse = TestRunResponse.builder()
                 .status(TestRunStatus.UNRESOLVED)
                 .build();
-        server.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
 
         TestRunResponse result = vrt.submitTestRun(NAME, IMAGE_BASE_64, testRunOptions);
 
-        RecordedRequest request = server.takeRequest();
+        RecordedRequest request = mockWebServer.takeRequest();
         assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(request.getBody().readUtf8(), is(gson.toJson(testRunRequest)));
         assertThat(gson.toJson(result), is(gson.toJson(testRunResponse)));
@@ -348,13 +356,13 @@ public class VisualRegressionTrackerTest {
                 .build();
         String json = gson.toJson(buildResponse);
         //body size is 97 bytes, http timeout is 1s, set body read delay to 0.5s, wait that vrt get all values correctly
-        server.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMOUT * 1000 - 500, TimeUnit.MILLISECONDS)
+        mockWebServer.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMEOUT * 1000 - 500, TimeUnit.MILLISECONDS)
                 .setResponseCode(200)
                 .setBody(json));
 
         vrt.start();
 
-        server.takeRequest();
+        mockWebServer.takeRequest();
 
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
@@ -374,13 +382,14 @@ public class VisualRegressionTrackerTest {
                 .ciBuildId(CI_BUILD_ID)
                 .build();
         String json = gson.toJson(buildResponse);
-        //body size is 97 bytes, http timeout is 1s, set body read delay to 1s, wait for error
-        server.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMOUT, TimeUnit.SECONDS)
+        //Send part of the body after every timeout, http timeout is 1s, set body read delay to 1s, wait for error
+        //For some reason double HTTP_TIMEOUT does not throw exception.
+        mockWebServer.enqueue(new MockResponse().throttleBody((json.length() / 2), HTTP_TIMEOUT, TimeUnit.SECONDS)
                 .setResponseCode(200)
                 .setBody(json));
 
         vrt.start();
 
-        server.takeRequest();
+        mockWebServer.takeRequest();
     }
 }

@@ -5,7 +5,6 @@ import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
-import io.visual_regression_tracker.sdk_java.response.VRTStopResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class VisualRegressionTracker {
         return buildResponse;
     }
 
-    public VRTStopResponse stop() throws IOException, InterruptedException {
+    public BuildResponse stop() throws IOException, InterruptedException {
         if (!isStarted()) {
             throw new TestRunException(TRACKER_NOT_STARTED);
         }
@@ -70,7 +69,7 @@ public class VisualRegressionTracker {
 
         HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("");
         HttpResponse<String> response = getResponse(METHOD.PATCH, paths.getBuildPathForBuild(buildId), body);
-        VRTStopResponse vrtStopResponse = handleResponse(response, VRTStopResponse.class);
+        BuildResponse vrtStopResponse = handleResponse(response, BuildResponse.class);
 
         log.info("Visual Regression Tracker is stopped for buildId <{}>", buildId);
         return vrtStopResponse;
