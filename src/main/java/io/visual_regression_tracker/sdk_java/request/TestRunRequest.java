@@ -17,6 +17,7 @@ public class TestRunRequest {
     private final String browser;
     private final String viewport;
     private final String device;
+    private final String customTags;
     private final Float diffTollerancePercent;
     private final String branchName;
     private final List<IgnoreAreas> ignoreAreas;
