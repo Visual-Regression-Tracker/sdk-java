@@ -12,6 +12,7 @@ public class TestRunOptions {
     private final String browser;
     private final String viewport;
     private final String device;
+    private final String customTags;
     private final Float diffTollerancePercent;
     private final List<IgnoreAreas> ignoreAreas;
 }

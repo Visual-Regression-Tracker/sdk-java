@@ -128,6 +128,7 @@ public class VisualRegressionTracker {
                 .browser(testRunOptions.getBrowser())
                 .viewport(testRunOptions.getViewport())
                 .device(testRunOptions.getDevice())
+                .customTags(testRunOptions.getCustomTags())
                 .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
                 .ignoreAreas(testRunOptions.getIgnoreAreas())
                 .build();

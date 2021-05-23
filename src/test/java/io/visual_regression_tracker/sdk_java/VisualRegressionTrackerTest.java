@@ -150,6 +150,7 @@ public class VisualRegressionTrackerTest {
                 .os("OS")
                 .browser("Browser")
                 .viewport("Viewport")
+                .customTags("customTags")
                 .diffTollerancePercent(0.5f)
                 .ignoreAreas(Arrays.asList(IgnoreAreas.builder()
                         .x(100L)
@@ -168,6 +169,7 @@ public class VisualRegressionTrackerTest {
                 .browser(testRunOptions.getBrowser())
                 .viewport(testRunOptions.getViewport())
                 .device(testRunOptions.getDevice())
+                .customTags(testRunOptions.getCustomTags())
                 .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
                 .ignoreAreas(testRunOptions.getIgnoreAreas())
                 .build();
