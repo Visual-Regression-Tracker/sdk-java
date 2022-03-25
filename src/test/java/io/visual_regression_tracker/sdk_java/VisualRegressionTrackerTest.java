@@ -102,6 +102,7 @@ public class VisualRegressionTrackerTest {
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
         assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
@@ -130,6 +131,7 @@ public class VisualRegressionTrackerTest {
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getMethod(), is("PATCH"));
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
         assertThat(Objects.requireNonNull(recordedRequest.getRequestUrl()).encodedPath(), containsString(BUILD_ID));
         assertThat(actualBuildResponse.isRunning(), is(false));
         assertThat(actualBuildResponse.getStatus(), containsString("unresolved"));
@@ -184,6 +186,7 @@ public class VisualRegressionTrackerTest {
 
         RecordedRequest request = mockWebServer.takeRequest();
         assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(request.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
         assertThat(request.getBody().readUtf8(), is(gson.toJson(testRunRequest)));
         assertThat(gson.toJson(result), is(gson.toJson(testRunResponse)));
     }

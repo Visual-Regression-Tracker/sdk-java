@@ -25,6 +25,7 @@ public class VisualRegressionTracker {
 
     private static final String TRACKER_NOT_STARTED = "Visual Regression Tracker has not been started";
     protected static final String API_KEY_HEADER = "apiKey";
+    protected static final String PROJECT_HEADER = "project";
     protected Gson gson;
     protected VisualRegressionTrackerConfig configuration;
     protected PathProvider paths;
@@ -56,7 +57,7 @@ public class VisualRegressionTracker {
         projectId = buildResponse.getProjectId();
 
         log.info("Visual Regression Tracker is started for project <{}>: projectId: <{}>, buildId: <{}>, ciBuildId: <{}>",
-                 projectName, projectId, buildId, buildResponse.getCiBuildId());
+                projectName, projectId, buildId, buildResponse.getCiBuildId());
         return buildResponse;
     }
 
@@ -142,6 +143,7 @@ public class VisualRegressionTracker {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .timeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
                 .header(API_KEY_HEADER, configuration.getApiKey())
+                .header(PROJECT_HEADER, configuration.getProject())
                 .header("Content-Type", "application/json;charset=UTF-8")
                 .uri(URI.create(url));
         HttpRequest request = getRequest(method, body, requestBuilder);
