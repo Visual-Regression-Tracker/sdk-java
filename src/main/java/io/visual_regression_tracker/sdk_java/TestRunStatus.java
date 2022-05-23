@@ -11,6 +11,8 @@ public enum TestRunStatus {
     OK,
     @SerializedName("approved")
     APPROVED,
+    @SerializedName("autoApproved")
+    AUTO_APPROVED,
     @SerializedName("failed")
     FAILED,
     @SerializedName("new")
