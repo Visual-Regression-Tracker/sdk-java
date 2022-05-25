@@ -286,6 +286,20 @@ public class VisualRegressionTrackerTest {
                                 .url("https://someurl.com/test/123123")
                                 .status(TestRunStatus.OK)
                                 .build(),
+                },
+                {
+                        TestRunResponse.builder()
+                                .id("someId")
+                                .imageName("imageName")
+                                .baselineName("baselineName")
+                                .diffName("diffName")
+                                .diffPercent(12.32f)
+                                .diffTollerancePercent(0.01f)
+                                .pixelMisMatchCount(1)
+                                .merge(false)
+                                .url("https://someurl.com/test/123123")
+                                .status(TestRunStatus.AUTO_APPROVED)
+                                .build(),
                 }
         };
     }
