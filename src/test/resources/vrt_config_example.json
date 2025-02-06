@@ -1,0 +1,8 @@
+{
+  "apiUrl": "http://162.243.161.172:4200",
+  "project": "VRT",
+  "apiKey": "SECRET",
+  "branchName": "master",
+  "enableSoftAssert": false,
+  "ciBuildId": "SOME_UNIQUE_ID"
+}

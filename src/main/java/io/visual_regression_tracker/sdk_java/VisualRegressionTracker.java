@@ -7,6 +7,7 @@ import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -24,6 +25,7 @@ enum METHOD {
 public class VisualRegressionTracker {
 
     private static final String TRACKER_NOT_STARTED = "Visual Regression Tracker has not been started";
+    private static final String CONFIG_FILE_NAME = "vrt.json";
     protected static final String API_KEY_HEADER = "apiKey";
     protected static final String PROJECT_HEADER = "project";
     protected Gson gson;
@@ -31,6 +33,17 @@ public class VisualRegressionTracker {
     protected PathProvider paths;
     protected String buildId;
     protected String projectId;
+
+    public VisualRegressionTracker() {
+        VisualRegressionTrackerConfig.VisualRegressionTrackerConfigBuilder configBuilder = VisualRegressionTrackerConfig.builder();
+        File configFile = new File(CONFIG_FILE_NAME);
+        if (configFile.exists()) {
+            configBuilder.configFile(configFile);
+        }
+        configuration = configBuilder.build();
+        paths = new PathProvider(configuration.getApiUrl());
+        gson = new Gson();
+    }
 
     public VisualRegressionTracker(VisualRegressionTrackerConfig trackerConfig) {
         configuration = trackerConfig;
