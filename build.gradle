@@ -10,7 +10,6 @@ repositories {
     mavenCentral()
 }
 
-
 buildscript {
     repositories {
         maven {
@@ -27,11 +26,11 @@ buildscript {
 dependencies {
     implementation 'com.google.code.gson:gson:2.9.0'
     implementation 'org.slf4j:slf4j-api:1.7.25'
-    testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    testImplementation group: 'org.testng', name: 'testng', version: '7.5'
-    testImplementation 'commons-io:commons-io:2.11.0'
+    testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.5.16'
+    testImplementation group: 'org.testng', name: 'testng', version: '7.7.0'
+    testImplementation 'commons-io:commons-io:2.18.0'
     testImplementation 'org.mockito:mockito-core:4.4.0'
-    testImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.11.0'
     testImplementation 'uk.org.webcompere:system-stubs-testng:2.1.3'
 }
 
