@@ -94,7 +94,7 @@ export VRT_HTTPTIMEOUTINSECONDS=15
   "apiUrl": "[http://162.243.161.172:4200](http://localhost:4200)",
   "project": "003f5fcf-6c5f-4f1f-a99f-82a697711382",
   "apiKey": "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
-  "branchName": "deveolop",
+  "branchName": "develop",
   "enableSoftAssert": false,
   "ciBuildId": "40bdba4"
 }
