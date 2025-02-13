@@ -39,48 +39,101 @@ More info about https://jitpack.io/
 
 ## Usage
 
-* Create config
+### Configuration
+In order to initialize VisualRegressionTracker, following options should be defined:
+    * [**Required**] apiUrl - URL where backend is running. Example: "http://localhost:4200"
+    * [**Required**] project - Project name or ID. Example: "003f5fcf-6c5f-4f1f-a99f-82a697711382"
+    * [**Required**] apiKey - User apiKey. Example: "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD"
+    * [_Optional_] branch - Current git branch. Example: "develop"
+    * [_Optional_] enableSoftAssert - Log errors instead of exceptions. Default value is false
+    * [_Optional_] ciBuildId - id of the build in CI system
+    * [_Optional_] httpTimeoutInSeconds - define http socket timeout in seconds. Default value is 10 seconds
+
+ There are a few ways to provide those options
+
+<details>
+
+<summary>Create config with builder</summary>
 
 ```java
-VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
-    // apiUrl - URL where backend is running 
-    "http://localhost:4200",
-    
-    // project - Project name or ID
-    "003f5fcf-6c5f-4f1f-a99f-82a697711382",
-    
-    // apiKey - User apiKey
-    "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
-    
-    // branch - Current git branch 
-    "develop",
-    
-    // enableSoftAssert - Log errors instead of exceptions
-    false,
- 
-    // ciBuildId - id of the build in CI system
-    "CI_BUILD_ID",
-    
-    // httpTimeoutInSeconds - define http socket timeout in seconds (default 10s)
-    15
-
-);
+VisualRegressionTrackerConfig config = VisualRegressionTrackerConfig.builder()
+                .apiUrl("http://localhost:4200")
+                .apiKey("F5Z2H0H2SNMXZVHX0EA4YQM1MGDD")
+                .project("003f5fcf-6c5f-4f1f-a99f-82a697711382")
+                .enableSoftAssert(true)
+                .branchName("develop")
+                .build();
 ```
 
-* Create an instance of `VisualRegressionTracker`
+</details>
+
+<details>
+
+<summary>Set environment variables</summary>
+
+```
+export VRT_APIURL=http://localhost:4200
+export VRT_APIKEY=F5Z2H0H2SNMXZVHX0EA4YQM1MGDD
+export VRT_PROJECT=003f5fcf-6c5f-4f1f-a99f-82a697711382
+export VRT_BRANCHNAME=develop
+export VRT_ENABLESOFTASSERT=true
+export VRT_CIBUILDID=40bdba4
+export VRT_HTTPTIMEOUTINSECONDS=15
+
+```
+
+</details>
+
+<details>
+
+<summary>Create vrt.json file in the root of the project</summary>
+
+```json
+{
+  "apiUrl": "[http://162.243.161.172:4200](http://localhost:4200)",
+  "project": "003f5fcf-6c5f-4f1f-a99f-82a697711382",
+  "apiKey": "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
+  "branchName": "deveolop",
+  "enableSoftAssert": false,
+  "ciBuildId": "40bdba4"
+}
+
+```
+
+</details>
+
+> [!NOTE]
+> Final values, that will be used by VisualRegressionTracker, will be resolved as following:
+> 1. Check if it was provided while creating or building VisualRegressionTrackerConfig
+> 2. If not, try to find the environment variable
+> 3. Get it from the configuration file (if it exists)
+
+
+
+
+### Create an instance of `VisualRegressionTracker`
 
 ```java
 VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
 ```
 
-* Take a screenshot as String in Base64 format
+or
+
+```java
+VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker();
+```
+
+> [!TIP]
+> If config is not provided explicitly, it will be created based on the environment variables or configuration file. Please see [Configuration](README.md#configuration) section
+
+### Take a screenshot as String in Base64 format
 
 ```java
 // Selenium example
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
 
-* Track image
+### Track image
 
 Default options
 
