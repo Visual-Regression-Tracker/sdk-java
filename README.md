@@ -41,13 +41,14 @@ More info about https://jitpack.io/
 
 ### Configuration
 In order to initialize VisualRegressionTracker, following options should be defined:
-    * [**Required**] apiUrl - URL where backend is running. Example: "http://localhost:4200"
-    * [**Required**] project - Project name or ID. Example: "003f5fcf-6c5f-4f1f-a99f-82a697711382"
-    * [**Required**] apiKey - User apiKey. Example: "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD"
-    * [_Optional_] branch - Current git branch. Example: "develop"
-    * [_Optional_] enableSoftAssert - Log errors instead of exceptions. Default value is false
-    * [_Optional_] ciBuildId - id of the build in CI system
-    * [_Optional_] httpTimeoutInSeconds - define http socket timeout in seconds. Default value is 10 seconds
+
+* `apiUrl` (**Required**) - URL where backend is running. _Example_: "http://localhost:4200"
+* `project` (**Required**) - Project name or ID. _Example_: "003f5fcf-6c5f-4f1f-a99f-82a697711382"
+* `apiKey` (**Required**) - User apiKey. _Example_: "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD"
+* `branch` (Optional) - Current git branch. _Example_: "develop"
+* `enableSoftAssert` (Optional) - Log errors instead of exceptions. Default value is false
+* `ciBuildId` (Optional) - id of the build in CI system
+* `httpTimeoutInSeconds` (Optional) - define http socket timeout in seconds. Default value is 10 seconds
 
  There are a few ways to provide those options
 
@@ -104,11 +105,11 @@ export VRT_HTTPTIMEOUTINSECONDS=15
 
 > [!NOTE]
 > Final values, that will be used by VisualRegressionTracker, will be resolved as following:
-> 1. Check if it was provided while creating or building VisualRegressionTrackerConfig
-> 2. If not, try to find the environment variable
-> 3. Get it from the configuration file (if it exists)
+> 1. If explicitly set while creating `VisualRegressionTrackerConfig` - use this value
+> 2. Use value from environment variable if it exists
+> 3. Try to get it from the configuration file
 
-
+<br />
 
 
 ### Create an instance of `VisualRegressionTracker`
@@ -126,12 +127,26 @@ VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker();
 > [!TIP]
 > If config is not provided explicitly, it will be created based on the environment variables or configuration file. Please see [Configuration](README.md#configuration) section
 
+<br />
+
+### Start `VisualRegressionTracker`
+
+```java
+visualRegressionTracker.start();
+```
+
+At that point VisualRegressionTracker will try to create a new build for provided project. All of the subsequent tracked screenshots are going to be included in that build.
+
+<br />
+
 ### Take a screenshot as String in Base64 format
 
 ```java
 // Selenium example
 String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
 ```
+
+<br />
 
 ### Track image
 
@@ -158,3 +173,12 @@ visualRegressionTracker.track(
             .build()
 );
 ```
+
+
+### Stop `VisualRegressionTracker`
+
+```java
+visualRegressionTracker.stop();
+```
+
+Should be called once current build should be considered as completed.
