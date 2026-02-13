@@ -81,7 +81,7 @@ public class VisualRegressionTracker {
 
         log.info("Stopping Visual Regression Tracker for buildId <{}>", buildId);
 
-        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("");
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("{\"isRunning\":false}");
         HttpResponse<String> response = getResponse(METHOD.PATCH, paths.getBuildPathForBuild(buildId), body);
         BuildResponse vrtStopResponse = handleResponse(response, BuildResponse.class);
 
