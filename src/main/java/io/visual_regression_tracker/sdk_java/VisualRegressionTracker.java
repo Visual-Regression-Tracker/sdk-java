@@ -2,6 +2,7 @@ package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
+import io.visual_regression_tracker.sdk_java.request.ModifyBuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
@@ -81,7 +82,10 @@ public class VisualRegressionTracker {
 
         log.info("Stopping Visual Regression Tracker for buildId <{}>", buildId);
 
-        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString("");
+        ModifyBuildRequest stopBuildRequest = ModifyBuildRequest.builder()
+                .isRunning(false)
+                .build();
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofString(gson.toJson(stopBuildRequest));
         HttpResponse<String> response = getResponse(METHOD.PATCH, paths.getBuildPathForBuild(buildId), body);
         BuildResponse vrtStopResponse = handleResponse(response, BuildResponse.class);
 

@@ -133,6 +133,7 @@ public class VisualRegressionTrackerTest {
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
         assertThat(Objects.requireNonNull(recordedRequest.getRequestUrl()).encodedPath(), containsString(BUILD_ID));
+        assertThat(recordedRequest.getBody().readUtf8(), is("{\"isRunning\":false}"));
         assertThat(actualBuildResponse.isRunning(), is(false));
         assertThat(actualBuildResponse.getStatus(), containsString("unresolved"));
         assertThat(actualBuildResponse.getPassedCount(), is(1));
