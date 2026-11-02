@@ -100,6 +100,17 @@ public class VisualRegressionTrackerRetryTest {
         assertThat(mockWebServer.getRequestCount(), is(1));
     }
 
+    @Test
+    public void shouldNotRetryWhenRetryAfterIsNotSeconds() {
+        mockWebServer.enqueue(busy("Wed, 21 Oct 2026 07:28:00 GMT"));
+        mockWebServer.enqueue(started());
+
+        TestRunException exception = expectThrows(TestRunException.class, () -> vrt.start());
+
+        assertThat(exception.getStatusCode(), is(503));
+        assertThat(mockWebServer.getRequestCount(), is(1));
+    }
+
     private static MockResponse busy(String retryAfter) {
         return new MockResponse()
                 .setResponseCode(503)

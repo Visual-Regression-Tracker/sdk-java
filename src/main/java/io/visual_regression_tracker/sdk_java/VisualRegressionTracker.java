@@ -143,7 +143,7 @@ public class VisualRegressionTracker {
 
     private TestRunResult trackMultipart(String name, byte[] image, String filename, TestRunOptions testRunOptions)
             throws IOException, InterruptedException {
-        log.info("Tracking test run <{}> from {} with options <{}> for buildId <{}>", name, filename, testRunOptions, buildId);
+        log.info("Tracking test run <{}> with options <{}> for buildId <{}>", name, testRunOptions, buildId);
         JsonObject fields = gson.toJsonTree(testRunRequest(name, testRunOptions).build()).getAsJsonObject();
         String boundary = UUID.randomUUID().toString();
 
@@ -237,7 +237,7 @@ public class VisualRegressionTracker {
                 .header(PROJECT_HEADER, configuration.getProject())
                 .header("Content-Type", contentType)
                 .uri(URI.create(url));
-        if (configuration.getHttpTimeoutInSeconds() > 0) {
+        if (configuration.getHttpTimeoutInSeconds() != 0) {
             requestBuilder.timeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()));
         }
         HttpRequest request = getRequest(method, body, requestBuilder);

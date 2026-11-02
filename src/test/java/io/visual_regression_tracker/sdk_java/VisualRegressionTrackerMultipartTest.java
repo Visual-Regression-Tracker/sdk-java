@@ -73,6 +73,7 @@ public class VisualRegressionTrackerMultipartTest {
         assertThat(request.getMethod(), is("POST"));
         assertThat(request.getPath(), endsWith("/test-runs/multipart"));
         assertThat(request.getHeader("Content-Type"), startsWith("multipart/form-data; boundary="));
+        assertThat(request.getHeader("Content-Length"), is(String.valueOf(request.getBodySize())));
         assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is("key"));
         assertThat(body, containsString(field("projectId", PROJECT_ID)));
         assertThat(body, containsString(field("buildId", BUILD_ID)));

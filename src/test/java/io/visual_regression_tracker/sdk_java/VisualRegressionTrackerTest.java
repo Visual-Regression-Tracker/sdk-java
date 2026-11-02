@@ -478,6 +478,15 @@ public class VisualRegressionTrackerTest {
         assertThat(vrt.buildId, is(BUILD_ID));
     }
 
+    @Test(expectedExceptions = IllegalArgumentException.class)
+    public void negativeHttpTimeoutShouldBeRejected() throws IOException, InterruptedException {
+        vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
+                mockWebServer.url("/").toString(), "key", "project", "develop", null, false, -1));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder().id(BUILD_ID).build())));
+
+        vrt.start();
+    }
+
     @Test(expectedExceptions = UnsupportedOperationException.class, expectedExceptionsMessageRegExp = "This method is not yet supported.")
     public void methodNotSupported() {
         vrt.getRequest(METHOD.GET, null, null);
