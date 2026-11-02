@@ -22,6 +22,8 @@ configurations {
     mockitoAgent
 }
 
+def mockito = 'org.mockito:mockito-core:5.24.0'
+
 dependencies {
     implementation 'com.google.code.gson:gson:2.15.0'
     implementation 'org.slf4j:slf4j-api:2.0.20'
@@ -29,8 +31,8 @@ dependencies {
     testImplementation 'ch.qos.logback:logback-classic:1.6.6'
     testImplementation 'org.testng:testng:7.12.0'
     testImplementation 'org.hamcrest:hamcrest:3.0'
-    testImplementation 'org.mockito:mockito-core:5.24.0'
-    mockitoAgent('org.mockito:mockito-core:5.24.0') {
+    testImplementation mockito
+    mockitoAgent(mockito) {
         transitive = false
     }
     testImplementation 'com.squareup.okhttp3:mockwebserver3:5.5.1'
@@ -39,14 +41,14 @@ dependencies {
 
 test {
     useTestNG()
-    jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
+    def agent = configurations.mockitoAgent
+    jvmArgumentProviders.add({ ["-javaagent:${agent.singleFile}".toString()] } as CommandLineArgumentProvider)
     finalizedBy jacocoTestReport
 }
 
 jacocoTestReport {
     reports {
         xml.required = true
-        html.required = true
     }
 }
 

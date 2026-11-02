@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,30 +24,25 @@ jobs:
         java: [ 17, 21, 25 ]
     steps:
       - uses: actions/checkout@v7
-      - uses: gradle/actions/wrapper-validation@v6
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
-          cache: gradle
-      - run: ./gradlew build --console=plain
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew build
+      - if: matrix.java == 17
+        name: Build as JitPack does for a tag
+        run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest publishToMavenLocal
       - if: matrix.java == 17
         uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           files: build/reports/jacoco/test/jacocoTestReport.xml
 
-  # the required check on master; it also runs the commands JitPack runs for a tag
+  # the required check on master: one name for the whole matrix
   build:
     needs: test
     if: always()
     runs-on: ubuntu-latest
     steps:
       - run: test "${{ needs.test.result }}" = success
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: gradle
-      - run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest publishToMavenLocal --console=plain
