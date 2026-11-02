@@ -1,23 +1,24 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/79dcd96f2be04992bc1059cad60e2e04)](https://www.codacy.com/gh/Visual-Regression-Tracker/sdk-java?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Visual-Regression-Tracker/sdk-java&amp;utm_campaign=Badge_Grade)
 
-Requires Java 11 or later.
+Track screenshots from Java tests in a Visual Regression Tracker server. Requires Java 17 or later and a VRT server 6.0 or later.
 
-## Gradle
+## Install
+
+The SDK is published on [JitPack](https://jitpack.io/#Visual-Regression-Tracker/sdk-java). The version is a git tag; see [releases](https://github.com/Visual-Regression-Tracker/sdk-java/releases).
+
+### Gradle
 
 ```groovy
 repositories {
     maven { url 'https://jitpack.io' }
 }
-```
 
-```groovy
 dependencies {
-    implementation 'com.github.Visual-Regression-Tracker:sdk-java:5.5.0'
+    testImplementation 'com.github.Visual-Regression-Tracker:sdk-java:6.0.0'
 }
 ```
 
-## Maven
+### Maven
 
 ```xml
 <repositories>
@@ -26,164 +27,165 @@ dependencies {
         <url>https://jitpack.io</url>
     </repository>
 </repositories>
-```
 
-```xml
 <dependency>
     <groupId>com.github.Visual-Regression-Tracker</groupId>
     <artifactId>sdk-java</artifactId>
-    <version>5.5.0</version>
+    <version>6.0.0</version>
+    <scope>test</scope>
 </dependency>
 ```
-[Available versions](https://github.com/Visual-Regression-Tracker/sdk-java/releases)
 
-More info about https://jitpack.io/
+The SDK logs through SLF4J 2. Add a provider such as `logback-classic` to see its output.
 
-## Usage
+### Upgrading to 6.0
 
-### Configuration
-In order to initialize VisualRegressionTracker, following options should be defined:
+- Java 17 or later is required.
+- SLF4J 1.7 bindings are not picked up; use an SLF4J 2 provider (logback 1.3+, `log4j-slf4j2-impl`).
+- The API is unchanged. A call that passes a literal `null` or a bare Mockito `any()` as the image is now ambiguous between the `String`, `byte[]` and `Path` overloads of `track`; use `any(String.class)`.
 
-* `apiUrl` (**Required**) - URL where backend is running. _Example_: "http://localhost:4200"
-* `project` (**Required**) - Project name or ID. _Example_: "003f5fcf-6c5f-4f1f-a99f-82a697711382"
-* `apiKey` (**Required**) - User apiKey. _Example_: "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD"
-* `branchName` (Optional) - Current git branch. _Example_: "develop". If not set, the build gets the project's main branch and tracked images use the build's branch
-* `enableSoftAssert` (Optional) - Log errors instead of exceptions. Default value is false
-* `ciBuildId` (Optional) - id of the build in CI system
-* `httpTimeoutInSeconds` (Optional) - how long to wait for each server response, in seconds. Default value is 360 seconds, because the server compares images while handling the request. Connecting has its own 10 second limit
+## Configuration
 
- There are a few ways to provide those options
+| Option | Environment variable | Required | Description |
+|---|---|---|---|
+| `apiUrl` | `VRT_APIURL` | yes | URL of the VRT API, for example `http://localhost:4200` |
+| `apiKey` | `VRT_APIKEY` | yes | API key of a VRT user |
+| `project` | `VRT_PROJECT` | yes | Project name or ID |
+| `branchName` | `VRT_BRANCHNAME` | no | Branch of the build. If not set, the build gets the project's main branch |
+| `sourceBranch` | `VRT_SOURCEBRANCH` | no | Branch whose baselines a test without a baseline on `branchName` is compared against. If not set, the project's main branch |
+| `ciBuildId` | `VRT_CIBUILDID` | no | ID of the CI build. Starting a build with an ID that already exists continues that build |
+| `enableSoftAssert` | `VRT_ENABLESOFTASSERT` | no | Log `new` and `unresolved` results instead of throwing. Default `false` |
+| `httpTimeoutInSeconds` | `VRT_HTTPTIMEOUTINSECONDS` | no | How long to wait for each response. Default `360`, because the server compares images while it handles the request; `0` means no limit. Connecting has its own 10 second limit |
 
-<details>
+Each option is taken from the builder (or constructor) first, then the environment variable, then `vrt.json` in the working directory (or the file passed to `configFile`).
 
-<summary>Create config with builder</summary>
+### Builder
 
 ```java
 VisualRegressionTrackerConfig config = VisualRegressionTrackerConfig.builder()
-                .apiUrl("http://localhost:4200")
-                .apiKey("F5Z2H0H2SNMXZVHX0EA4YQM1MGDD")
-                .project("003f5fcf-6c5f-4f1f-a99f-82a697711382")
-                .enableSoftAssert(true)
-                .branchName("develop")
-                .build();
+        .apiUrl("http://localhost:4200")
+        .apiKey("F5Z2H0H2SNMXZVHX0EA4YQM1MGDD")
+        .project("Default project")
+        .branchName("feature/login")
+        .sourceBranch("develop")
+        .enableSoftAssert(true)
+        .build();
 ```
 
-</details>
+### Environment variables
 
-<details>
-
-<summary>Set environment variables</summary>
-
-```
+```bash
 export VRT_APIURL=http://localhost:4200
 export VRT_APIKEY=F5Z2H0H2SNMXZVHX0EA4YQM1MGDD
-export VRT_PROJECT=003f5fcf-6c5f-4f1f-a99f-82a697711382
-export VRT_BRANCHNAME=develop
-export VRT_ENABLESOFTASSERT=true
+export VRT_PROJECT="Default project"
+export VRT_BRANCHNAME=feature/login
+export VRT_SOURCEBRANCH=develop
 export VRT_CIBUILDID=40bdba4
-export VRT_HTTPTIMEOUTINSECONDS=15
-
+export VRT_ENABLESOFTASSERT=true
 ```
 
-</details>
-
-<details>
-
-<summary>Create vrt.json file in the working directory</summary>
+### `vrt.json`
 
 ```json
 {
   "apiUrl": "http://localhost:4200",
-  "project": "003f5fcf-6c5f-4f1f-a99f-82a697711382",
   "apiKey": "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
-  "branchName": "develop",
-  "enableSoftAssert": false,
+  "project": "Default project",
+  "branchName": "feature/login",
+  "sourceBranch": "develop",
   "ciBuildId": "40bdba4",
-  "httpTimeoutInSeconds": 15
+  "enableSoftAssert": true
 }
-
 ```
 
-</details>
+Keep the API key out of git: commit a `vrt.json.example` and ignore `vrt.json`.
 
-> [!NOTE]
-> Final values, that will be used by VisualRegressionTracker, will be resolved as following:
-> 1. If explicitly set while creating `VisualRegressionTrackerConfig` - use this value
-> 2. Use value from environment variable if it exists
-> 3. Try to get it from the configuration file
-
-<br />
-
-
-### Create an instance of `VisualRegressionTracker`
+## Usage
 
 ```java
-VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker(config);
-```
+VisualRegressionTracker vrt = new VisualRegressionTracker(config);
+// or new VisualRegressionTracker() to read the environment and vrt.json only
 
-or
-
-```java
-VisualRegressionTracker visualRegressionTracker = new VisualRegressionTracker();
-```
-
-> [!TIP]
-> If config is not provided explicitly, it will be created based on the environment variables or configuration file. Please see [Configuration](README.md#configuration) section
-
-<br />
-
-### Start `VisualRegressionTracker`
-
-```java
-visualRegressionTracker.start();
-```
-
-At that point VisualRegressionTracker will try to create a new build for provided project. All of the subsequent tracked screenshots are going to be included in that build.
-
-<br />
-
-### Take a screenshot as String in Base64 format
-
-```java
-// Selenium example
-String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-```
-
-<br />
-
-### Track image
-
-Default options
-
-```java
-visualRegressionTracker.track(
-        "Name for test",
-        screenshotBase64
-);
-```
-
-With specific options 
-
-```java
-visualRegressionTracker.track(
-        "Name for test",
-        screenshotBase64,
-        TestRunOptions.builder()
+vrt.start();
+try {
+    // Selenium: a file, bytes or base64
+    Path screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE).toPath();
+    vrt.track("Login page", screenshot, TestRunOptions.builder()
             .browser("Chrome")
-            .os("Windows")
-            .viewport("1200x800")
-            .diffTollerancePercent(3.0f)
-            .build()
-);
+            .os("Linux")
+            .viewport("1280x720")
+            .build());
+} finally {
+    vrt.stop();
+}
 ```
 
-`track` throws `TestRunException` when there is no baseline (`NEW`) or a difference is found (`UNRESOLVED`), unless `enableSoftAssert` is on. A status the SDK does not know comes back as `UNKNOWN`, which is logged as a warning and never fails `track`. When the server rejects a request, `TestRunException.getStatusCode()` holds the HTTP status, and the message reads `Request failed with status <code>: <server's message>`.
+`start()` creates a build; every `track` call adds a test run to it; `stop()` finishes the build.
 
+### Image
 
-### Stop `VisualRegressionTracker`
+| Call | Upload |
+|---|---|
+| `track(name, Path image)` | multipart, file name kept |
+| `track(name, byte[] image)` | multipart |
+| `track(name, String imageBase64)` | base64 in JSON |
 
-```java
-visualRegressionTracker.stop();
-```
+Each also takes a `TestRunOptions` as the third argument. Prefer a file or bytes: base64 in JSON is bound by the server's `BODY_PARSER_JSON_LIMIT` (5 MB by default), multipart by the much larger `MULTIPART_FILE_SIZE_LIMIT`.
 
-Should be called once current build should be considered as completed.
+### `TestRunOptions`
+
+| Option | Description |
+|---|---|
+| `os`, `browser`, `viewport`, `device`, `customTags` | Part of the test's identity: a baseline is matched on name and all of these |
+| `diffTollerancePercent` | Difference, in percent, still treated as a match (the spelling is the server's) |
+| `ignoreAreas` | List of `IgnoreAreas` (`x`, `y`, `width`, `height`) left out of the comparison |
+| `comment` | Comment shown on the test run |
+| `merge` | Mark the test run for merging into the main branch |
+
+## Result and statuses
+
+`track` returns a `TestRunResult`:
+
+- `getTestRunResponse()`: `getId()`, `getStatus()`, `getUrl()` (the test run in the VRT UI), `getDiffPercent()` and the rest of the server's answer;
+- `getImageUrl()`, `getBaselineUrl()`, `getDiffUrl()`: the images, served through `<apiUrl>/images/<name>`; `null` when there is no such image.
+
+| Status | `track` |
+|---|---|
+| `OK`, `APPROVED`, `AUTO_APPROVED`, `FAILED` | returns |
+| `NEW` (no baseline yet) | throws `TestRunException` "No baseline: <url>", or logs it with `enableSoftAssert` |
+| `UNRESOLVED` (difference found) | throws `TestRunException` "Difference found: <url>", or logs it with `enableSoftAssert` |
+| `UNKNOWN` (a status this SDK does not know) | logs a warning and returns |
+
+## Errors
+
+When the server rejects a request, the SDK throws `TestRunException`. `getStatusCode()` holds the HTTP status and the message reads `Request failed with status <code>: <server's message>`. Calling `track` or `stop` before `start` also throws it, with no status code.
+
+| Status | Meaning |
+|---|---|
+| 401, 403 | Wrong `apiKey`, or the user may not use the project |
+| 404 | Project or build not found |
+| 413 | Request too large. For base64 the message suggests multipart; for multipart it names `MULTIPART_FILE_SIZE_LIMIT` |
+| 422 | Image has more pixels than the server's `MAX_IMAGE_PIXELS` |
+| 503 | Server busy. With `Retry-After` the SDK waits and retries up to 3 times (at most 60 s per wait) before throwing |
+
+Network failures and timeouts surface as `IOException` (`HttpTimeoutException` for a timeout).
+
+## Releasing
+
+JitPack builds the SDK from a git tag; there is nothing to upload.
+
+1. Make sure `master` is green.
+2. Tag the commit with the version, without a `v`: `git tag <version> && git push origin <version>`.
+3. Create a GitHub release for the tag with the release notes.
+4. Open `https://jitpack.io/#Visual-Regression-Tracker/sdk-java/<version>` to start the build, and check that its log ends with the artifact list.
+
+JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command in its `build` job.
+
+## Links
+
+- [Java examples](https://github.com/Visual-Regression-Tracker/examples-java)
+- [Other SDKs and agents](https://github.com/Visual-Regression-Tracker)
+
+## License
+
+[Apache-2.0](LICENSE)
