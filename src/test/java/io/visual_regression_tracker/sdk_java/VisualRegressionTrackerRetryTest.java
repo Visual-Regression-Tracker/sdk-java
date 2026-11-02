@@ -33,7 +33,7 @@ public class VisualRegressionTrackerRetryTest {
         vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
                 mockWebServer.url("/").toString(), "key", "project", "develop", null, false, 1)) {
             @Override
-            protected void sleep(Duration duration) {
+            void sleep(Duration duration) {
                 waits.add(duration);
             }
         };

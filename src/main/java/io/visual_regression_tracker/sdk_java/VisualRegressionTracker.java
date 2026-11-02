@@ -12,7 +12,6 @@ import io.visual_regression_tracker.sdk_java.response.ErrorResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -23,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -144,7 +144,13 @@ public class VisualRegressionTracker {
     private TestRunResult trackMultipart(String name, byte[] image, String filename, TestRunOptions testRunOptions)
             throws IOException, InterruptedException {
         log.info("Tracking test run <{}> from {} with options <{}> for buildId <{}>", name, filename, testRunOptions, buildId);
-        return toResult(submitTestRunMultipart(name, image, filename, testRunOptions));
+        JsonObject fields = gson.toJsonTree(testRunRequest(name, testRunOptions).build()).getAsJsonObject();
+        String boundary = UUID.randomUUID().toString();
+
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofByteArrays(multipartBody(boundary, fields, image, filename));
+        HttpResponse<String> response = getResponse(METHOD.POST, paths.getTestRunMultipartPath(),
+                "multipart/form-data; boundary=" + boundary, body);
+        return toResult(handleResponse(response, TestRunResponse.class, true));
     }
 
     private TestRunResult toResult(TestRunResponse testResultDTO) {
@@ -189,17 +195,6 @@ public class VisualRegressionTracker {
         return handleResponse(response, TestRunResponse.class);
     }
 
-    protected TestRunResponse submitTestRunMultipart(String name, byte[] image, String filename,
-                                                     TestRunOptions testRunOptions) throws IOException, InterruptedException {
-        JsonObject fields = gson.toJsonTree(testRunRequest(name, testRunOptions).build()).getAsJsonObject();
-        String boundary = UUID.randomUUID().toString();
-
-        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofByteArray(multipartBody(boundary, fields, image, filename));
-        HttpResponse<String> response = getResponse(METHOD.POST, paths.getTestRunMultipartPath(),
-                "multipart/form-data; boundary=" + boundary, body);
-        return handleResponse(response, TestRunResponse.class);
-    }
-
     private TestRunRequest.TestRunRequestBuilder testRunRequest(String name, TestRunOptions testRunOptions) {
         if (!isStarted()) {
             throw new TestRunException(TRACKER_NOT_STARTED);
@@ -222,22 +217,17 @@ public class VisualRegressionTracker {
                 .ignoreAreas(testRunOptions.getIgnoreAreas());
     }
 
-    private static byte[] multipartBody(String boundary, JsonObject fields, byte[] image, String filename) throws IOException {
-        ByteArrayOutputStream body = new ByteArrayOutputStream();
+    private static List<byte[]> multipartBody(String boundary, JsonObject fields, byte[] image, String filename) {
+        StringBuilder head = new StringBuilder();
         for (Map.Entry<String, JsonElement> field : fields.entrySet()) {
             JsonElement value = field.getValue();
-            writeUtf8(body, "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + field.getKey() + "\"\r\n\r\n"
-                    + (value.isJsonPrimitive() ? value.getAsString() : value.toString()) + "\r\n");
+            head.append("--").append(boundary).append("\r\nContent-Disposition: form-data; name=\"").append(field.getKey())
+                    .append("\"\r\n\r\n").append(value.isJsonPrimitive() ? value.getAsString() : value.toString()).append("\r\n");
         }
-        writeUtf8(body, "--" + boundary + "\r\nContent-Disposition: form-data; name=\"image\"; filename=\""
-                + filename.replace("\"", "%22") + "\"\r\nContent-Type: image/png\r\n\r\n");
-        body.write(image);
-        writeUtf8(body, "\r\n--" + boundary + "--\r\n");
-        return body.toByteArray();
-    }
-
-    private static void writeUtf8(ByteArrayOutputStream stream, String text) throws IOException {
-        stream.write(text.getBytes(StandardCharsets.UTF_8));
+        head.append("--").append(boundary).append("\r\nContent-Disposition: form-data; name=\"image\"; filename=\"")
+                .append(filename.replace("\"", "%22")).append("\"\r\nContent-Type: image/png\r\n\r\n");
+        String tail = "\r\n--" + boundary + "--\r\n";
+        return List.of(head.toString().getBytes(StandardCharsets.UTF_8), image, tail.getBytes(StandardCharsets.UTF_8));
     }
 
     private HttpResponse<String> getResponse(METHOD method, String url, String contentType, HttpRequest.BodyPublisher body)
@@ -271,13 +261,13 @@ public class VisualRegressionTracker {
             return response.headers().firstValue("Retry-After")
                     .map(Long::parseLong)
                     .filter(seconds -> seconds >= 0)
-                    .map(seconds -> seconds > MAX_RETRY_AFTER.getSeconds() ? MAX_RETRY_AFTER : Duration.ofSeconds(seconds));
+                    .map(seconds -> Duration.ofSeconds(Math.min(seconds, MAX_RETRY_AFTER.getSeconds())));
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
     }
 
-    protected void sleep(Duration duration) throws InterruptedException {
+    void sleep(Duration duration) throws InterruptedException {
         Thread.sleep(duration.toMillis());
     }
 
@@ -293,9 +283,12 @@ public class VisualRegressionTracker {
     }
 
     protected <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT) {
+        return handleResponse(response, classOfT, false);
+    }
+
+    private <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT, boolean multipart) {
         String responseBody = response.body();
         if (!String.valueOf(response.statusCode()).startsWith("2")) {
-            boolean multipart = response.uri().getPath().endsWith(PathProvider.MULTIPART_PATH);
             throw new TestRunException(response.statusCode(), serverMessage(responseBody), multipart);
         }
         return gson.fromJson(responseBody, classOfT);

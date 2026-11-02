@@ -59,6 +59,7 @@ public class VisualRegressionTrackerConfigTest {
         assertThat(config.getEnableSoftAssert(), is(false));
         assertThat(config.getCiBuildId(), is("SOME_UNIQUE_ID"));
         assertThat(config.getHttpTimeoutInSeconds(), is(15));
+        assertThat(config.getSourceBranch(), is("develop"));
     }
 
     @Test
@@ -68,7 +69,8 @@ public class VisualRegressionTrackerConfigTest {
                 .set("VRT_PROJECT", "VRT")
                 .set("VRT_BRANCHNAME", "master")
                 .set("VRT_ENABLESOFTASSERT", "false")
-                .set("VRT_CIBUILDID", "SOME_UNIQUE_ID");
+                .set("VRT_CIBUILDID", "SOME_UNIQUE_ID")
+                .set("VRT_SOURCEBRANCH", "develop");
 
         VisualRegressionTrackerConfig config = environmentVariables.execute(() ->
                 VisualRegressionTrackerConfig.builder()
@@ -81,23 +83,27 @@ public class VisualRegressionTrackerConfigTest {
         assertThat(config.getBranchName(), is("master"));
         assertThat(config.getEnableSoftAssert(), is(false));
         assertThat(config.getCiBuildId(), is("SOME_UNIQUE_ID"));
+        assertThat(config.getSourceBranch(), is("develop"));
     }
 
     @Test
     public void shouldResolveFinalValuesInTheRightOrder() throws Exception {
         EnvironmentVariables environmentVariables = new EnvironmentVariables("VRT_APIKEY", "ENV_SECRET")
-                .set("VRT_APIURL", "http://162.243.161.172:4201");
+                .set("VRT_APIURL", "http://162.243.161.172:4201")
+                .set("VRT_SOURCEBRANCH", "env");
         File configFile = new File("src/test/resources/vrt_config_example.json");
 
         VisualRegressionTrackerConfig config = environmentVariables.execute(() ->
                 VisualRegressionTrackerConfig.builder()
                         .apiUrl("http://localhost:4200")
+                        .sourceBranch("builder")
                         .configFile(configFile)
                         .build()
         );
 
         assertThat(config.getApiKey(), is("ENV_SECRET"));
         assertThat(config.getApiUrl(), is("http://localhost:4200"));
+        assertThat(config.getSourceBranch(), is("builder"));
         assertThat(config.getProject(), is("VRT"));
         assertThat(config.getBranchName(), is("master"));
         assertThat(config.getEnableSoftAssert(), is(false));
@@ -157,25 +163,6 @@ public class VisualRegressionTrackerConfigTest {
         VisualRegressionTrackerConfig.builder()
                 .configFile(configFile(REQUIRED_FIELDS + ", \"httpTimeoutInSeconds\": 15.5}"))
                 .build();
-    }
-
-    @Test
-    public void shouldReadSourceBranchFromEachSource() throws Exception {
-        VisualRegressionTrackerConfig fromBuilder = VisualRegressionTrackerConfig.builder()
-                .configFile(configFile(REQUIRED_FIELDS + "}"))
-                .sourceBranch("release")
-                .build();
-        VisualRegressionTrackerConfig fromEnvironment = new EnvironmentVariables("VRT_SOURCEBRANCH", "release")
-                .execute(() -> VisualRegressionTrackerConfig.builder()
-                        .configFile(configFile(REQUIRED_FIELDS + ", \"sourceBranch\": \"ignored\"}"))
-                        .build());
-        VisualRegressionTrackerConfig fromFile = VisualRegressionTrackerConfig.builder()
-                .configFile(configFile(REQUIRED_FIELDS + ", \"sourceBranch\": \"release\"}"))
-                .build();
-
-        assertThat(fromBuilder.getSourceBranch(), is("release"));
-        assertThat(fromEnvironment.getSourceBranch(), is("release"));
-        assertThat(fromFile.getSourceBranch(), is("release"));
     }
 
     @Test

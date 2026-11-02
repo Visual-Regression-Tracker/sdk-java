@@ -147,7 +147,8 @@ public class VisualRegressionTrackerMultipartTest {
 
         TestRunException exception = expectThrows(TestRunException.class, () -> vrt.track("Home page", "aW1hZ2U="));
 
-        assertThat(exception.getMessage(), containsString("multipart"));
+        assertThat(exception.getMessage(),
+                is("Request failed with status 413: request entity too large. " + TestRunException.PAYLOAD_TOO_LARGE_HINT));
     }
 
     private void enqueueStatus(TestRunStatus status) {
