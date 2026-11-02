@@ -1,6 +1,6 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
 
-Track screenshots from Java tests in a Visual Regression Tracker server. Requires Java 17 or later and a VRT server 6.0 or later.
+Track screenshots from Java tests in a Visual Regression Tracker server. Requires Java 17 or later. Built and tested against VRT server 6.0; image URLs need server 5.0.10 or later.
 
 ## Install
 
@@ -130,7 +130,7 @@ try {
 | `track(name, byte[] image)` | multipart |
 | `track(name, String imageBase64)` | base64 in JSON |
 
-Each also takes a `TestRunOptions` as the third argument. Prefer a file or bytes: base64 in JSON is bound by the server's `BODY_PARSER_JSON_LIMIT` (5 MB by default), multipart by the much larger `MULTIPART_FILE_SIZE_LIMIT`.
+Each also takes a `TestRunOptions` as the third argument. Prefer a file or bytes: base64 in JSON is bound by the server's `BODY_PARSER_JSON_LIMIT` (5 MB in the server's shipped `.env`, Express's 100 kB when unset), multipart by the much larger `MULTIPART_FILE_SIZE_LIMIT` (100 MB by default).
 
 ### `TestRunOptions`
 
@@ -140,7 +140,7 @@ Each also takes a `TestRunOptions` as the third argument. Prefer a file or bytes
 | `diffTollerancePercent` | Difference, in percent, still treated as a match (the spelling is the server's) |
 | `ignoreAreas` | List of `IgnoreAreas` (`x`, `y`, `width`, `height`) left out of the comparison |
 | `comment` | Comment shown on the test run |
-| `merge` | Mark the test run for merging into the main branch |
+| `merge` | Approving this test run in the UI updates the main branch's baseline instead of `branchName`'s |
 
 ## Result and statuses
 
