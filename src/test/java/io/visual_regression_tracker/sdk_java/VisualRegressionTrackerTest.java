@@ -10,9 +10,9 @@ import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.SneakyThrows;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -25,7 +25,6 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -81,7 +80,7 @@ public class VisualRegressionTrackerTest {
     @SneakyThrows
     @AfterMethod
     public void tearDown() {
-        mockWebServer.shutdown();
+        mockWebServer.close();
         reset(vrtMocked);
     }
 
@@ -97,16 +96,16 @@ public class VisualRegressionTrackerTest {
                 .projectId(PROJECT_ID)
                 .ciBuildId(CI_BUILD_ID)
                 .build();
-        mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setBody(gson.toJson(buildResponse)));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(gson.toJson(buildResponse)).build());
 
         BuildResponse result = vrt.start();
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
-        assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
+        assertThat(recordedRequest.getHeaders().get(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeaders().get(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
+        assertThat(recordedRequest.getBody().utf8(), is(gson.toJson(buildRequest)));
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
         assertThat(result.getId(), is(BUILD_ID));
@@ -125,18 +124,18 @@ public class VisualRegressionTrackerTest {
                 .isRunning(false)
                 .status("unresolved")
                 .build();
-        mockWebServer.enqueue(new MockResponse()
-                .setResponseCode(200)
-                .setBody(gson.toJson(buildResponse)));
+        mockWebServer.enqueue(new MockResponse.Builder()
+                .code(200)
+                .body(gson.toJson(buildResponse)).build());
 
         BuildResponse actualBuildResponse = vrt.stop();
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
         assertThat(recordedRequest.getMethod(), is("PATCH"));
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
-        assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
-        assertThat(Objects.requireNonNull(recordedRequest.getRequestUrl()).encodedPath(), containsString(BUILD_ID));
-        assertThat(recordedRequest.getBody().readUtf8(), is("{\"isRunning\":false}"));
+        assertThat(recordedRequest.getHeaders().get(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(recordedRequest.getHeaders().get(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
+        assertThat(recordedRequest.getUrl().encodedPath(), containsString(BUILD_ID));
+        assertThat(recordedRequest.getBody().utf8(), is("{\"isRunning\":false}"));
         assertThat(actualBuildResponse.isRunning(), is(false));
         assertThat(actualBuildResponse.getStatus(), containsString("unresolved"));
         assertThat(actualBuildResponse.getPassedCount(), is(1));
@@ -187,7 +186,7 @@ public class VisualRegressionTrackerTest {
         TestRunResponse testRunResponse = TestRunResponse.builder()
                 .status(TestRunStatus.UNRESOLVED)
                 .build();
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(testRunResponse)).build());
         config.setSourceBranch("release");
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
@@ -195,9 +194,9 @@ public class VisualRegressionTrackerTest {
         TestRunResponse result = vrt.submitTestRun(NAME, IMAGE_BASE_64, testRunOptions);
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
-        assertThat(request.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
-        assertThat(request.getBody().readUtf8(), is(gson.toJson(testRunRequest)));
+        assertThat(request.getHeaders().get(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
+        assertThat(request.getHeaders().get(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
+        assertThat(request.getBody().utf8(), is(gson.toJson(testRunRequest)));
         assertThat(gson.toJson(result), is(gson.toJson(testRunResponse)));
     }
 
@@ -385,39 +384,39 @@ public class VisualRegressionTrackerTest {
     public void trackShouldSendBranchNameOfBuildWhenNoneConfigured() throws IOException, InterruptedException {
         vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
                 mockWebServer.url("/").toString(), "key", "project", null, null, false, HTTP_TIMEOUT));
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(BuildResponse.builder()
                 .id(BUILD_ID)
                 .projectId(PROJECT_ID)
                 .branchName("main")
-                .build())));
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+                .build())).build());
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(TestRunResponse.builder()
                 .status(TestRunStatus.OK)
-                .build())));
+                .build())).build());
 
         vrt.start();
         vrt.track(NAME, IMAGE_BASE_64);
 
         mockWebServer.takeRequest();
-        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
+        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().utf8(), TestRunRequest.class);
         assertThat(sent.getBranchName(), is("main"));
     }
 
     @Test
     public void trackShouldSendConfiguredBranchNameOverBuildBranch() throws IOException, InterruptedException {
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(BuildResponse.builder()
                 .id(BUILD_ID)
                 .projectId(PROJECT_ID)
                 .branchName("main")
-                .build())));
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+                .build())).build());
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(TestRunResponse.builder()
                 .status(TestRunStatus.OK)
-                .build())));
+                .build())).build());
 
         vrt.start();
         vrt.track(NAME, IMAGE_BASE_64);
 
         mockWebServer.takeRequest();
-        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
+        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().utf8(), TestRunRequest.class);
         assertThat(sent.getBranchName(), is("develop"));
     }
 
@@ -430,7 +429,7 @@ public class VisualRegressionTrackerTest {
     public void trackShouldReturnUnknownForStatusItDoesNotKnow() throws IOException, InterruptedException {
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
-        mockWebServer.enqueue(new MockResponse().setBody("{\"status\":\"someFutureStatus\",\"url\":\"https://someurl.com/test/1\"}"));
+        mockWebServer.enqueue(new MockResponse.Builder().body("{\"status\":\"someFutureStatus\",\"url\":\"https://someurl.com/test/1\"}").build());
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
         ((Logger) LoggerFactory.getLogger(VisualRegressionTracker.class)).addAppender(listAppender);
@@ -452,9 +451,9 @@ public class VisualRegressionTrackerTest {
                 .build();
         String json = gson.toJson(buildResponse);
         //body size is 97 bytes, http timeout is 1s, set body read delay to 0.5s, wait that vrt get all values correctly
-        mockWebServer.enqueue(new MockResponse().throttleBody(json.length(), HTTP_TIMEOUT * 1000 - 500, TimeUnit.MILLISECONDS)
-                .setResponseCode(200)
-                .setBody(json));
+        mockWebServer.enqueue(new MockResponse.Builder().throttleBody(json.length(), HTTP_TIMEOUT * 1000 - 500, TimeUnit.MILLISECONDS)
+                .code(200)
+                .body(json).build());
 
         vrt.start();
 
@@ -468,10 +467,10 @@ public class VisualRegressionTrackerTest {
     public void zeroHttpTimeoutShouldMeanNoLimit() throws IOException, InterruptedException {
         vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
                 mockWebServer.url("/").toString(), "key", "project", "develop", null, false, 0));
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(BuildResponse.builder()
                 .id(BUILD_ID)
                 .projectId(PROJECT_ID)
-                .build())));
+                .build())).build());
 
         vrt.start();
 
@@ -482,7 +481,7 @@ public class VisualRegressionTrackerTest {
     public void negativeHttpTimeoutShouldBeRejected() throws IOException, InterruptedException {
         vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
                 mockWebServer.url("/").toString(), "key", "project", "develop", null, false, -1));
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder().id(BUILD_ID).build())));
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(BuildResponse.builder().id(BUILD_ID).build())).build());
 
         vrt.start();
     }
@@ -503,9 +502,9 @@ public class VisualRegressionTrackerTest {
         String json = gson.toJson(buildResponse);
         //Send part of the body after every timeout, http timeout is 1s, set body read delay to 1s, wait for error
         //For some reason double HTTP_TIMEOUT does not throw exception.
-        mockWebServer.enqueue(new MockResponse().throttleBody((json.length() / 2), HTTP_TIMEOUT, TimeUnit.SECONDS)
-                .setResponseCode(200)
-                .setBody(json));
+        mockWebServer.enqueue(new MockResponse.Builder().throttleBody((json.length() / 2), HTTP_TIMEOUT, TimeUnit.SECONDS)
+                .code(200)
+                .body(json).build());
 
         vrt.start();
 
