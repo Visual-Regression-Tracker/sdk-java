@@ -39,7 +39,7 @@ jobs:
           files: build/reports/jacoco/test/jacocoTestReport.xml
       - if: matrix.java == 17
         name: Build as JitPack does for a tag
-        run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest publishToMavenLocal
+        run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest assemble publishToMavenLocal
 
   # the required check on master: one name for the whole matrix
   build:
