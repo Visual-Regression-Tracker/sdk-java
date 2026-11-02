@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -183,7 +185,6 @@ public class VisualRegressionTrackerTest {
         mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
-        vrt.branchName = config.getBranchName();
 
         TestRunResponse result = vrt.submitTestRun(NAME, IMAGE_BASE_64, testRunOptions);
 
@@ -359,6 +360,8 @@ public class VisualRegressionTrackerTest {
                 {422, "{\"statusCode\":422,\"path\":\"/test-runs\",\"name\":\"ImageTooLargeException\",\"message\":\"Image is too large\"}",
                         "Request failed with status 422: Image is too large. " + TestRunException.IMAGE_TOO_LARGE_HINT},
                 {502, "<html>Bad Gateway</html>", "Request failed with status 502: <html>Bad Gateway</html>"},
+                {502, "", "Request failed with status 502"},
+                {504, " \n", "Request failed with status 504"},
         };
     }
 
@@ -391,6 +394,30 @@ public class VisualRegressionTrackerTest {
         mockWebServer.takeRequest();
         TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
         assertThat(sent.getBranchName(), is("main"));
+    }
+
+    @Test
+    public void trackShouldSendConfiguredBranchNameOverBuildBranch() throws IOException, InterruptedException {
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .branchName("main")
+                .build())));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+                .status(TestRunStatus.OK)
+                .build())));
+
+        vrt.start();
+        vrt.track(NAME, IMAGE_BASE_64);
+
+        mockWebServer.takeRequest();
+        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
+        assertThat(sent.getBranchName(), is("develop"));
+    }
+
+    @Test
+    public void shouldConnectWithTenSecondTimeout() {
+        assertThat(vrt.httpClient.connectTimeout(), is(Optional.of(Duration.ofSeconds(10))));
     }
 
     @Test

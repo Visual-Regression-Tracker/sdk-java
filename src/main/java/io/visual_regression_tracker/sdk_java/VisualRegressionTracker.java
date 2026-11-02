@@ -37,6 +37,10 @@ public class VisualRegressionTracker {
     protected String buildId;
     protected String projectId;
     protected String branchName;
+    protected final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     public VisualRegressionTracker() {
         VisualRegressionTrackerConfig.VisualRegressionTrackerConfigBuilder configBuilder = VisualRegressionTrackerConfig.builder();
@@ -72,7 +76,7 @@ public class VisualRegressionTracker {
 
         buildId = buildResponse.getId();
         projectId = buildResponse.getProjectId();
-        branchName = branch != null ? branch : buildResponse.getBranchName();
+        branchName = buildResponse.getBranchName();
 
         log.info("Visual Regression Tracker is started for project <{}>: projectId: <{}>, buildId: <{}>, ciBuildId: <{}>",
                 projectName, projectId, buildId, buildResponse.getCiBuildId());
@@ -147,7 +151,7 @@ public class VisualRegressionTracker {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(projectId)
                 .buildId(buildId)
-                .branchName(branchName)
+                .branchName(configuration.getBranchName() != null ? configuration.getBranchName() : branchName)
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())
@@ -172,12 +176,7 @@ public class VisualRegressionTracker {
                 .header("Content-Type", "application/json;charset=UTF-8")
                 .uri(URI.create(url));
         HttpRequest request = getRequest(method, body, requestBuilder);
-        HttpResponse<String> response = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
-        return response;
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     protected HttpRequest getRequest(METHOD method, HttpRequest.BodyPublisher body, HttpRequest.Builder requestBuilder) {

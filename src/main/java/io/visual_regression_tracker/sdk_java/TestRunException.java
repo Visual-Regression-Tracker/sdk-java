@@ -22,7 +22,8 @@ public class TestRunException extends RuntimeException {
     }
 
     private static String httpErrorMessage(int statusCode, String serverMessage) {
-        String message = "Request failed with status " + statusCode + ": " + serverMessage;
+        String detail = serverMessage.isBlank() ? "" : ": " + serverMessage;
+        String message = "Request failed with status " + statusCode + detail;
         switch (statusCode) {
             case 413:
                 return message + ". " + PAYLOAD_TOO_LARGE_HINT;

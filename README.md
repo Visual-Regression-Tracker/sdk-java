@@ -50,7 +50,7 @@ In order to initialize VisualRegressionTracker, following options should be defi
 * `branchName` (Optional) - Current git branch. _Example_: "develop". If not set, the build gets the project's main branch and tracked images use the build's branch
 * `enableSoftAssert` (Optional) - Log errors instead of exceptions. Default value is false
 * `ciBuildId` (Optional) - id of the build in CI system
-* `httpTimeoutInSeconds` (Optional) - define http socket timeout in seconds. Default value is 10 seconds
+* `httpTimeoutInSeconds` (Optional) - how long to wait for each server response, in seconds. Default value is 360 seconds, because the server compares images while handling the request. Connecting has its own 10 second limit
 
  There are a few ways to provide those options
 
@@ -89,7 +89,7 @@ export VRT_HTTPTIMEOUTINSECONDS=15
 
 <details>
 
-<summary>Create vrt.json file in the root of the project</summary>
+<summary>Create vrt.json file in the working directory</summary>
 
 ```json
 {
@@ -177,7 +177,7 @@ visualRegressionTracker.track(
 );
 ```
 
-`track` throws `TestRunException` when there is no baseline (`NEW`) or a difference is found (`UNRESOLVED`), unless `enableSoftAssert` is on. A status the SDK does not know comes back as `UNKNOWN`. When the server rejects a request, `TestRunException.getStatusCode()` holds the HTTP status and the message holds the server's reason.
+`track` throws `TestRunException` when there is no baseline (`NEW`) or a difference is found (`UNRESOLVED`), unless `enableSoftAssert` is on. A status the SDK does not know comes back as `UNKNOWN`, which is logged as a warning and never fails `track`. When the server rejects a request, `TestRunException.getStatusCode()` holds the HTTP status, and the message reads `Request failed with status <code>: <server's message>`.
 
 
 ### Stop `VisualRegressionTracker`

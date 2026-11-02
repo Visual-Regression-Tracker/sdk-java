@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
@@ -33,7 +34,7 @@ public class VisualRegressionTrackerConfig {
     private String branchName;
     private String ciBuildId;
     private Boolean enableSoftAssert = false;
-    private int httpTimeoutInSeconds = 10;
+    private int httpTimeoutInSeconds = 360;
 
     public static VisualRegressionTrackerConfigBuilder builder() {
         return new VisualRegressionTrackerConfigBuilder();
@@ -155,16 +156,23 @@ public class VisualRegressionTrackerConfig {
             propertyValue = System.getenv(environmentVariableName);
             if (propertyValue != null) {
                 log.debug("Value of '{}' resolved from environment variable {}", propertyName, environmentVariableName);
-                Function<String, ?> parser = findParser(field.getType());
-                return (T) parser.apply((String)propertyValue);
+                return parse(field, (String) propertyValue);
             }
 
             propertyValue = configurationFromFile.get(propertyName);
             if (propertyValue != null) {
                 log.debug("Value of '{}' resolved from config file", propertyName);
-                return (T) findParser(field.getType()).apply((String) propertyValue);
+                return parse(field, (String) propertyValue);
             }
             return null;
+        }
+
+        private <T> T parse(Field field, String value) {
+            try {
+                return (T) findParser(field.getType()).apply(value);
+            } catch (NumberFormatException | ArithmeticException e) {
+                throw new IllegalArgumentException("Invalid value for '" + field.getName() + "': " + value, e);
+            }
         }
 
         private Function<String, ?> findParser(Class<?> cls) {
@@ -172,7 +180,7 @@ public class VisualRegressionTrackerConfig {
                 return Boolean::parseBoolean;
             }
             if (cls.equals(Integer.class)) {
-                return Integer::parseInt;
+                return value -> new BigDecimal(value).intValueExact();
             }
             return String::valueOf;
         }
