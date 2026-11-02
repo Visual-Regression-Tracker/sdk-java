@@ -147,7 +147,9 @@ public class VisualRegressionTracker {
         JsonObject fields = gson.toJsonTree(testRunRequest(name, testRunOptions).build()).getAsJsonObject();
         String boundary = UUID.randomUUID().toString();
 
-        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.ofByteArrays(multipartBody(boundary, fields, image, filename));
+        List<byte[]> parts = multipartBody(boundary, fields, image, filename);
+        HttpRequest.BodyPublisher body = HttpRequest.BodyPublishers.fromPublisher(
+                HttpRequest.BodyPublishers.ofByteArrays(parts), parts.stream().mapToLong(part -> part.length).sum());
         HttpResponse<String> response = getResponse(METHOD.POST, paths.getTestRunMultipartPath(),
                 "multipart/form-data; boundary=" + boundary, body);
         return toResult(handleResponse(response, TestRunResponse.class, true));
