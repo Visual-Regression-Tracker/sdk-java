@@ -157,6 +157,8 @@ public class VisualRegressionTrackerTest {
                 .browser("Browser")
                 .viewport("Viewport")
                 .customTags("customTags")
+                .comment("comment")
+                .merge(true)
                 .diffTollerancePercent(0.5f)
                 .ignoreAreas(Arrays.asList(IgnoreAreas.builder()
                         .x(100L)
@@ -176,6 +178,9 @@ public class VisualRegressionTrackerTest {
                 .viewport(testRunOptions.getViewport())
                 .device(testRunOptions.getDevice())
                 .customTags(testRunOptions.getCustomTags())
+                .comment(testRunOptions.getComment())
+                .merge(testRunOptions.getMerge())
+                .sourceBranch("release")
                 .diffTollerancePercent(testRunOptions.getDiffTollerancePercent())
                 .ignoreAreas(testRunOptions.getIgnoreAreas())
                 .build();
@@ -183,6 +188,7 @@ public class VisualRegressionTrackerTest {
                 .status(TestRunStatus.UNRESOLVED)
                 .build();
         mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(testRunResponse)));
+        config.setSourceBranch("release");
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
 
@@ -456,6 +462,20 @@ public class VisualRegressionTrackerTest {
 
         assertThat(vrt.buildId, is(BUILD_ID));
         assertThat(vrt.projectId, is(PROJECT_ID));
+    }
+
+    @Test
+    public void zeroHttpTimeoutShouldMeanNoLimit() throws IOException, InterruptedException {
+        vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
+                mockWebServer.url("/").toString(), "key", "project", "develop", null, false, 0));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .build())));
+
+        vrt.start();
+
+        assertThat(vrt.buildId, is(BUILD_ID));
     }
 
     @Test(expectedExceptions = UnsupportedOperationException.class, expectedExceptionsMessageRegExp = "This method is not yet supported.")

@@ -106,7 +106,7 @@ public class MockHttpClient extends HttpClient {
 
             @Override
             public URI uri() {
-                return null;
+                return URI.create("http://localhost/test-runs");
             }
 
             @Override

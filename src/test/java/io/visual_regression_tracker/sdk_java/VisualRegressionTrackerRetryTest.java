@@ -1,0 +1,113 @@
+package io.visual_regression_tracker.sdk_java;
+
+import com.google.gson.Gson;
+import io.visual_regression_tracker.sdk_java.response.BuildResponse;
+import lombok.SneakyThrows;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.testng.Assert.expectThrows;
+
+public class VisualRegressionTrackerRetryTest {
+
+    private final Gson gson = new Gson();
+    private final List<Duration> waits = new ArrayList<>();
+    private MockWebServer mockWebServer;
+    private VisualRegressionTracker vrt;
+
+    @SneakyThrows
+    @BeforeMethod
+    public void setup() {
+        waits.clear();
+        mockWebServer = new MockWebServer();
+        mockWebServer.start();
+        vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
+                mockWebServer.url("/").toString(), "key", "project", "develop", null, false, 1)) {
+            @Override
+            protected void sleep(Duration duration) {
+                waits.add(duration);
+            }
+        };
+    }
+
+    @SneakyThrows
+    @AfterMethod
+    public void tearDown() {
+        mockWebServer.shutdown();
+    }
+
+    @Test
+    public void shouldRetryServiceUnavailableAfterTheTimeTheServerAsks() throws Exception {
+        mockWebServer.enqueue(busy("2"));
+        mockWebServer.enqueue(started());
+
+        BuildResponse build = vrt.start();
+
+        assertThat(build.getId(), is("buildId"));
+        assertThat(mockWebServer.getRequestCount(), is(2));
+        assertThat(waits, is(List.of(Duration.ofSeconds(2))));
+    }
+
+    @Test
+    public void shouldCapTheWaitBetweenRetries() throws Exception {
+        mockWebServer.enqueue(busy("3600"));
+        mockWebServer.enqueue(started());
+
+        vrt.start();
+
+        assertThat(waits, is(List.of(VisualRegressionTracker.MAX_RETRY_AFTER)));
+    }
+
+    @Test
+    public void shouldGiveUpAfterTheLastRetry() {
+        for (int i = 0; i <= VisualRegressionTracker.MAX_RETRIES; i++) {
+            mockWebServer.enqueue(busy("0"));
+        }
+
+        TestRunException exception = expectThrows(TestRunException.class, () -> vrt.start());
+
+        assertThat(exception.getStatusCode(), is(503));
+        assertThat(mockWebServer.getRequestCount(), is(VisualRegressionTracker.MAX_RETRIES + 1));
+    }
+
+    @Test
+    public void shouldNotRetryServiceUnavailableWithoutRetryAfter() {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(503).setBody("{\"message\":\"Directory service is not available.\"}"));
+        mockWebServer.enqueue(started());
+
+        TestRunException exception = expectThrows(TestRunException.class, () -> vrt.start());
+
+        assertThat(exception.getStatusCode(), is(503));
+        assertThat(mockWebServer.getRequestCount(), is(1));
+    }
+
+    @Test
+    public void shouldNotRetryOtherErrorsWithRetryAfter() {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(429).setHeader("Retry-After", "0"));
+        mockWebServer.enqueue(started());
+
+        expectThrows(TestRunException.class, () -> vrt.start());
+
+        assertThat(mockWebServer.getRequestCount(), is(1));
+    }
+
+    private static MockResponse busy(String retryAfter) {
+        return new MockResponse()
+                .setResponseCode(503)
+                .setHeader("Retry-After", retryAfter)
+                .setBody("{\"message\":\"Image diff queue is full (100 jobs)\"}");
+    }
+
+    private MockResponse started() {
+        return new MockResponse().setBody(gson.toJson(BuildResponse.builder().id("buildId").projectId("projectId").build()));
+    }
+}

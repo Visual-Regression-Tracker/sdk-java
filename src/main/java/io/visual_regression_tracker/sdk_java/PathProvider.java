@@ -7,6 +7,7 @@ public class PathProvider {
 
     private static final String BUILD_PATH = "/builds";
     private static final String TEST_RUNS_PATH = "/test-runs";
+    static final String MULTIPART_PATH = "/multipart";
     private static final String IMAGES_PATH = "/images/";
 
     private final String baseApiUrl;
@@ -21,6 +22,10 @@ public class PathProvider {
 
     public String getTestRunPath() {
         return baseApiUrl.concat(TEST_RUNS_PATH);
+    }
+
+    public String getTestRunMultipartPath() {
+        return getTestRunPath().concat(MULTIPART_PATH);
     }
 
     public String getImageUrl(String name) {

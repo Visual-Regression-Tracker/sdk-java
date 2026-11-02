@@ -159,6 +159,35 @@ public class VisualRegressionTrackerConfigTest {
                 .build();
     }
 
+    @Test
+    public void shouldReadSourceBranchFromEachSource() throws Exception {
+        VisualRegressionTrackerConfig fromBuilder = VisualRegressionTrackerConfig.builder()
+                .configFile(configFile(REQUIRED_FIELDS + "}"))
+                .sourceBranch("release")
+                .build();
+        VisualRegressionTrackerConfig fromEnvironment = new EnvironmentVariables("VRT_SOURCEBRANCH", "release")
+                .execute(() -> VisualRegressionTrackerConfig.builder()
+                        .configFile(configFile(REQUIRED_FIELDS + ", \"sourceBranch\": \"ignored\"}"))
+                        .build());
+        VisualRegressionTrackerConfig fromFile = VisualRegressionTrackerConfig.builder()
+                .configFile(configFile(REQUIRED_FIELDS + ", \"sourceBranch\": \"release\"}"))
+                .build();
+
+        assertThat(fromBuilder.getSourceBranch(), is("release"));
+        assertThat(fromEnvironment.getSourceBranch(), is("release"));
+        assertThat(fromFile.getSourceBranch(), is("release"));
+    }
+
+    @Test
+    public void shouldKeepTheConstructorWithoutSourceBranch() {
+        VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(
+                "http://localhost:4200", "KEY", "PROJECT", "develop", "ci", true, 15);
+
+        assertThat(config.getBranchName(), is("develop"));
+        assertThat(config.getHttpTimeoutInSeconds(), is(15));
+        assertThat(config.getSourceBranch(), is((String) null));
+    }
+
     private File configFile(String content) throws Exception {
         Path configFile = Files.createTempFile("vrt", ".json");
         Files.writeString(configFile, content);

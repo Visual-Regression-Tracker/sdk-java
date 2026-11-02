@@ -18,6 +18,9 @@ public class TestRunRequest {
     private final String viewport;
     private final String device;
     private final String customTags;
+    private final String comment;
+    private final Boolean merge;
+    private final String sourceBranch;
     private final Float diffTollerancePercent;
     private final String branchName;
     private final List<IgnoreAreas> ignoreAreas;

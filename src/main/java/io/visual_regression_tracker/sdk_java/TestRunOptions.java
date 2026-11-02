@@ -15,6 +15,8 @@ public class TestRunOptions {
     private final String viewport;
     private final String device;
     private final String customTags;
+    private final String comment;
+    private final Boolean merge;
     private final Float diffTollerancePercent;
     private final List<IgnoreAreas> ignoreAreas;
 }
