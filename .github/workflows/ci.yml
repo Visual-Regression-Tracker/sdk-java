@@ -29,20 +29,22 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.java }}
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
       - run: ./gradlew build
-      - if: matrix.java == 17
-        name: Build as JitPack does for a tag
-        run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest publishToMavenLocal
       - if: matrix.java == 17
         uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           files: build/reports/jacoco/test/jacocoTestReport.xml
+      - if: matrix.java == 17
+        name: Build as JitPack does for a tag
+        run: ./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=ci -xtest publishToMavenLocal
 
   # the required check on master: one name for the whole matrix
   build:
     needs: test
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - run: test "${{ needs.test.result }}" = success
