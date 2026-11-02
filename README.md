@@ -179,7 +179,7 @@ JitPack builds the SDK from a git tag; there is nothing to upload.
 3. Create a GitHub release for the tag with the release notes.
 4. Open `https://jitpack.io/#Visual-Regression-Tracker/sdk-java/<version>` to start the build, and check that its log ends with the artifact list.
 
-JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command in its `build` job.
+JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command on Java 17 for every pull request.
 
 ## Links
 
