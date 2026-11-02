@@ -35,6 +35,13 @@ public class VisualRegressionTrackerConfig {
     private String ciBuildId;
     private Boolean enableSoftAssert = false;
     private int httpTimeoutInSeconds = 360;
+    private String sourceBranch;
+
+    public VisualRegressionTrackerConfig(@NonNull String apiUrl, @NonNull String apiKey, @NonNull String project,
+                                         String branchName, String ciBuildId, Boolean enableSoftAssert,
+                                         int httpTimeoutInSeconds) {
+        this(apiUrl, apiKey, project, branchName, ciBuildId, enableSoftAssert, httpTimeoutInSeconds, null);
+    }
 
     public static VisualRegressionTrackerConfigBuilder builder() {
         return new VisualRegressionTrackerConfigBuilder();
@@ -49,6 +56,7 @@ public class VisualRegressionTrackerConfig {
         private String ciBuildId;
         private Boolean enableSoftAssert;
         private Integer httpTimeoutInSeconds;
+        private String sourceBranch;
 
         private File configFile;
 
@@ -89,6 +97,11 @@ public class VisualRegressionTrackerConfig {
             return this;
         }
 
+        public VisualRegressionTrackerConfigBuilder sourceBranch(String sourceBranch) {
+            this.sourceBranch = sourceBranch;
+            return this;
+        }
+
         public VisualRegressionTrackerConfigBuilder configFile(File configFile) {
             this.configFile = configFile;
             return this;
@@ -107,6 +120,7 @@ public class VisualRegressionTrackerConfig {
             VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig(actualApiUrl, actualApiKey, actualProject);
             config.setCiBuildId(resolve("ciBuildId", configFromFile));
             config.setBranchName(resolve("branchName", configFromFile));
+            config.setSourceBranch(resolve("sourceBranch", configFromFile));
 
             Boolean actualEnableSoftAssert = resolve("enableSoftAssert", configFromFile);
             if (actualEnableSoftAssert != null) {

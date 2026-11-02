@@ -5,7 +5,9 @@ import lombok.Getter;
 @Getter
 public class TestRunException extends RuntimeException {
     static final String PAYLOAD_TOO_LARGE_HINT =
-            "The request is above the server's JSON body limit (BODY_PARSER_JSON_LIMIT); send a smaller screenshot or raise the limit.";
+            "The request is above the server's JSON body limit (BODY_PARSER_JSON_LIMIT); track the image as a file or bytes (multipart) instead of base64, or raise the limit.";
+    static final String MULTIPART_TOO_LARGE_HINT =
+            "The image is above the server's upload limit (MULTIPART_FILE_SIZE_LIMIT); send a smaller screenshot or raise the limit.";
     static final String IMAGE_TOO_LARGE_HINT =
             "The image has more pixels than the server accepts (MAX_IMAGE_PIXELS); send a smaller screenshot or raise the limit.";
 
@@ -17,16 +19,20 @@ public class TestRunException extends RuntimeException {
     }
 
     public TestRunException(int statusCode, String serverMessage) {
-        super(httpErrorMessage(statusCode, serverMessage));
+        this(statusCode, serverMessage, false);
+    }
+
+    TestRunException(int statusCode, String serverMessage, boolean multipart) {
+        super(httpErrorMessage(statusCode, serverMessage, multipart));
         this.statusCode = statusCode;
     }
 
-    private static String httpErrorMessage(int statusCode, String serverMessage) {
+    private static String httpErrorMessage(int statusCode, String serverMessage, boolean multipart) {
         String detail = serverMessage.isBlank() ? "" : ": " + serverMessage;
         String message = "Request failed with status " + statusCode + detail;
         switch (statusCode) {
             case 413:
-                return message + ". " + PAYLOAD_TOO_LARGE_HINT;
+                return message + ". " + (multipart ? MULTIPART_TOO_LARGE_HINT : PAYLOAD_TOO_LARGE_HINT);
             case 422:
                 return message + ". " + IMAGE_TOO_LARGE_HINT;
             default:

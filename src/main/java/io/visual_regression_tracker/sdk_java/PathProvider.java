@@ -23,6 +23,10 @@ public class PathProvider {
         return baseApiUrl.concat(TEST_RUNS_PATH);
     }
 
+    public String getTestRunMultipartPath() {
+        return getTestRunPath().concat("/multipart");
+    }
+
     public String getImageUrl(String name) {
         if(name == null || name.isEmpty()){
             return null;
