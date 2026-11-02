@@ -54,6 +54,7 @@ public class VisualRegressionTrackerConfigTest {
         assertThat(config.getBranchName(), is("master"));
         assertThat(config.getEnableSoftAssert(), is(false));
         assertThat(config.getCiBuildId(), is("SOME_UNIQUE_ID"));
+        assertThat(config.getHttpTimeoutInSeconds(), is(15));
     }
 
     @Test
@@ -107,6 +108,14 @@ public class VisualRegressionTrackerConfigTest {
                         .apiKey("KEY")
                         .project("PROJECT")
                         .build();
+
+        assertThat(config.getEnableSoftAssert(), is(false));
+        assertThat(config.getHttpTimeoutInSeconds(), is(10));
+    }
+
+    @Test
+    public void shouldUseDefaultValuesWhenCreatedWithConstructor() {
+        VisualRegressionTrackerConfig config = new VisualRegressionTrackerConfig("http://localhost:4200", "KEY", "PROJECT");
 
         assertThat(config.getEnableSoftAssert(), is(false));
         assertThat(config.getHttpTimeoutInSeconds(), is(10));

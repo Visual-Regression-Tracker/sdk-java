@@ -20,7 +20,7 @@ public class PathProviderTest {
   @DataProvider(name = "shouldGetImageUrlCases")
   public Object[][] shouldGetImageUrlCases() {
     return new Object[][] {
-      {null, null}, {"", null}, {"some", apiUrl.concat("/some")},
+      {null, null}, {"", null}, {"some", apiUrl.concat("/images/some")},
     };
   }
 

@@ -18,5 +18,6 @@ public enum TestRunStatus {
     @SerializedName("new")
     NEW,
     @SerializedName("unresolved")
-    UNRESOLVED
+    UNRESOLVED,
+    UNKNOWN
 }

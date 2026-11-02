@@ -1,10 +1,12 @@
 package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.ModifyBuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
+import io.visual_regression_tracker.sdk_java.response.ErrorResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,6 +36,7 @@ public class VisualRegressionTracker {
     protected PathProvider paths;
     protected String buildId;
     protected String projectId;
+    protected String branchName;
 
     public VisualRegressionTracker() {
         VisualRegressionTrackerConfig.VisualRegressionTrackerConfigBuilder configBuilder = VisualRegressionTrackerConfig.builder();
@@ -69,6 +72,7 @@ public class VisualRegressionTracker {
 
         buildId = buildResponse.getId();
         projectId = buildResponse.getProjectId();
+        branchName = branch != null ? branch : buildResponse.getBranchName();
 
         log.info("Visual Regression Tracker is started for project <{}>: projectId: <{}>, buildId: <{}>, ciBuildId: <{}>",
                 projectName, projectId, buildId, buildResponse.getCiBuildId());
@@ -139,7 +143,7 @@ public class VisualRegressionTracker {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(projectId)
                 .buildId(buildId)
-                .branchName(configuration.getBranchName())
+                .branchName(branchName)
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())
@@ -186,8 +190,20 @@ public class VisualRegressionTracker {
     protected <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT) {
         String responseBody = response.body();
         if (!String.valueOf(response.statusCode()).startsWith("2")) {
-            throw new TestRunException(responseBody);
+            throw new TestRunException(response.statusCode(), serverMessage(responseBody));
         }
         return gson.fromJson(responseBody, classOfT);
+    }
+
+    private String serverMessage(String responseBody) {
+        try {
+            ErrorResponse error = gson.fromJson(responseBody, ErrorResponse.class);
+            if (error != null && error.getMessage() != null) {
+                return error.getMessage();
+            }
+        } catch (JsonSyntaxException ignored) {
+            // not the server's JSON error body, e.g. an HTML page from a proxy
+        }
+        return responseBody;
     }
 }

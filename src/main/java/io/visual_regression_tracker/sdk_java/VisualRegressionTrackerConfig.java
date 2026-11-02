@@ -32,8 +32,8 @@ public class VisualRegressionTrackerConfig {
 
     private String branchName;
     private String ciBuildId;
-    private Boolean enableSoftAssert;
-    private int httpTimeoutInSeconds;
+    private Boolean enableSoftAssert = false;
+    private int httpTimeoutInSeconds = 10;
 
     public static VisualRegressionTrackerConfigBuilder builder() {
         return new VisualRegressionTrackerConfigBuilder();
@@ -52,8 +52,6 @@ public class VisualRegressionTrackerConfig {
         private File configFile;
 
         private static final String VRT_ENV_VARIABLE_PREFIX = "VRT_";
-        private static final boolean DEFAULT_SOFT_ASSERTION_STATE = false;
-        private static final int DEFAULT_HTTP_TIMEOUT_SECONDS = 10;
 
         public VisualRegressionTrackerConfigBuilder apiUrl(String apiUrl) {
             this.apiUrl = apiUrl;
@@ -96,7 +94,7 @@ public class VisualRegressionTrackerConfig {
         }
 
         public VisualRegressionTrackerConfig build() {
-            Map<String, Object> configFromFile = Collections.emptyMap();
+            Map<String, String> configFromFile = Collections.emptyMap();
             if (configFile != null) {
                 configFromFile = readConfigFromFile(configFile);
             }
@@ -110,15 +108,19 @@ public class VisualRegressionTrackerConfig {
             config.setBranchName(resolve("branchName", configFromFile));
 
             Boolean actualEnableSoftAssert = resolve("enableSoftAssert", configFromFile);
-            config.setEnableSoftAssert(actualEnableSoftAssert == null ? DEFAULT_SOFT_ASSERTION_STATE : actualEnableSoftAssert);
+            if (actualEnableSoftAssert != null) {
+                config.setEnableSoftAssert(actualEnableSoftAssert);
+            }
 
             Integer actualHttpTimeoutInSeconds = resolve("httpTimeoutInSeconds", configFromFile);
-            config.setHttpTimeoutInSeconds(actualHttpTimeoutInSeconds == null ? DEFAULT_HTTP_TIMEOUT_SECONDS : actualHttpTimeoutInSeconds);
+            if (actualHttpTimeoutInSeconds != null) {
+                config.setHttpTimeoutInSeconds(actualHttpTimeoutInSeconds);
+            }
 
             return config;
         }
 
-        private Map<String, Object> readConfigFromFile(File configFile) {
+        private Map<String, String> readConfigFromFile(File configFile) {
             if (!configFile.exists()) {
                 throw new IllegalArgumentException("File " + configFile + " doesn't exist");
             }
@@ -129,12 +131,12 @@ public class VisualRegressionTrackerConfig {
             } catch (IOException e) {
                 throw new IllegalArgumentException("Can't read content of provided config file", e);
             }
-            Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
             return new Gson().fromJson(fileContent, mapType);
         }
 
         @SneakyThrows
-        private <T> T resolve(String propertyName, Map<String, Object> configurationFromFile) {
+        private <T> T resolve(String propertyName, Map<String, String> configurationFromFile) {
             // 1. check if it was initialized explicitly in builder
             // 2. check if env variable exists
             // 3. try to read from file as last resort
@@ -155,8 +157,9 @@ public class VisualRegressionTrackerConfig {
             propertyValue = configurationFromFile.get(propertyName);
             if (propertyValue != null) {
                 log.debug("Value of '{}' resolved from config file", propertyName);
+                return (T) findParser(field.getType()).apply((String) propertyValue);
             }
-            return propertyValue == null ? null : (T) propertyValue;
+            return null;
         }
 
         private Function<String, ?> findParser(Class<?> cls) {
