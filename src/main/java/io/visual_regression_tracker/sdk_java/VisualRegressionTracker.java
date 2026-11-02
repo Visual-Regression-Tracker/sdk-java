@@ -110,6 +110,10 @@ public class VisualRegressionTracker {
             case UNRESOLVED:
                 errorMessage = "Difference found: ".concat(testResultDTO.getUrl());
                 break;
+            case UNKNOWN:
+                log.warn("Unknown status of test run: {}", testResultDTO.getUrl());
+                errorMessage = "";
+                break;
             default:
                 errorMessage = "";
                 break;

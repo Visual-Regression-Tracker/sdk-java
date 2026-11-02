@@ -1,7 +1,7 @@
 package io.visual_regression_tracker.sdk_java;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Data()
 @RequiredArgsConstructor
@@ -131,8 +131,13 @@ public class VisualRegressionTrackerConfig {
             } catch (IOException e) {
                 throw new IllegalArgumentException("Can't read content of provided config file", e);
             }
-            Type mapType = new TypeToken<Map<String, String>>() {}.getType();
-            return new Gson().fromJson(fileContent, mapType);
+            JsonElement json = JsonParser.parseString(fileContent);
+            if (!json.isJsonObject()) {
+                return Collections.emptyMap();
+            }
+            return json.getAsJsonObject().entrySet().stream()
+                    .filter(entry -> entry.getValue().isJsonPrimitive())
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getAsString()));
         }
 
         @SneakyThrows

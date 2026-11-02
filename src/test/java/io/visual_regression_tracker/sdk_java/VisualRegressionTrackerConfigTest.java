@@ -4,6 +4,8 @@ import org.testng.annotations.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,5 +121,27 @@ public class VisualRegressionTrackerConfigTest {
 
         assertThat(config.getEnableSoftAssert(), is(false));
         assertThat(config.getHttpTimeoutInSeconds(), is(10));
+    }
+
+    @Test
+    public void shouldIgnoreNonScalarValuesInConfigFile() throws Exception {
+        Path configFile = Files.createTempFile("vrt", ".json");
+        Files.writeString(configFile, "{\"apiUrl\": \"http://localhost:4200\", \"apiKey\": \"KEY\", \"project\": \"PROJECT\", \"extra\": {\"nested\": 1}}");
+
+        VisualRegressionTrackerConfig config = VisualRegressionTrackerConfig.builder()
+                .configFile(configFile.toFile())
+                .build();
+
+        assertThat(config.getProject(), is("PROJECT"));
+    }
+
+    @Test(expectedExceptions = NullPointerException.class,
+            expectedExceptionsMessageRegExp = "apiUrl is marked non-null but is null")
+    public void shouldTreatEmptyConfigFileAsNoValues() throws Exception {
+        Path configFile = Files.createTempFile("vrt", ".json");
+
+        VisualRegressionTrackerConfig.builder()
+                .configFile(configFile.toFile())
+                .build();
     }
 }

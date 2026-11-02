@@ -397,11 +397,17 @@ public class VisualRegressionTrackerTest {
     public void trackShouldReturnUnknownForStatusItDoesNotKnow() throws IOException, InterruptedException {
         vrt.buildId = BUILD_ID;
         vrt.projectId = PROJECT_ID;
-        mockWebServer.enqueue(new MockResponse().setBody("{\"status\":\"someFutureStatus\"}"));
+        mockWebServer.enqueue(new MockResponse().setBody("{\"status\":\"someFutureStatus\",\"url\":\"https://someurl.com/test/1\"}"));
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+        ((Logger) LoggerFactory.getLogger(VisualRegressionTracker.class)).addAppender(listAppender);
 
         TestRunResult result = vrt.track(NAME, IMAGE_BASE_64);
 
         assertThat(result.getTestRunResponse().getStatus(), is(TestRunStatus.UNKNOWN));
+        ILoggingEvent warning = listAppender.list.get(listAppender.list.size() - 1);
+        assertThat(warning.getLevel(), is(Level.WARN));
+        assertThat(warning.getFormattedMessage(), is("Unknown status of test run: https://someurl.com/test/1"));
     }
 
     @Test
