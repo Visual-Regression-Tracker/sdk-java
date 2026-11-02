@@ -1,10 +1,12 @@
 package io.visual_regression_tracker.sdk_java;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import io.visual_regression_tracker.sdk_java.request.BuildRequest;
 import io.visual_regression_tracker.sdk_java.request.ModifyBuildRequest;
 import io.visual_regression_tracker.sdk_java.request.TestRunRequest;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
+import io.visual_regression_tracker.sdk_java.response.ErrorResponse;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,6 +36,11 @@ public class VisualRegressionTracker {
     protected PathProvider paths;
     protected String buildId;
     protected String projectId;
+    protected String branchName;
+    protected final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     public VisualRegressionTracker() {
         VisualRegressionTrackerConfig.VisualRegressionTrackerConfigBuilder configBuilder = VisualRegressionTrackerConfig.builder();
@@ -69,6 +76,7 @@ public class VisualRegressionTracker {
 
         buildId = buildResponse.getId();
         projectId = buildResponse.getProjectId();
+        branchName = buildResponse.getBranchName();
 
         log.info("Visual Regression Tracker is started for project <{}>: projectId: <{}>, buildId: <{}>, ciBuildId: <{}>",
                 projectName, projectId, buildId, buildResponse.getCiBuildId());
@@ -106,6 +114,10 @@ public class VisualRegressionTracker {
             case UNRESOLVED:
                 errorMessage = "Difference found: ".concat(testResultDTO.getUrl());
                 break;
+            case UNKNOWN:
+                log.warn("Unknown status of test run: {}", testResultDTO.getUrl());
+                errorMessage = "";
+                break;
             default:
                 errorMessage = "";
                 break;
@@ -139,7 +151,7 @@ public class VisualRegressionTracker {
         TestRunRequest newTestRun = TestRunRequest.builder()
                 .projectId(projectId)
                 .buildId(buildId)
-                .branchName(configuration.getBranchName())
+                .branchName(configuration.getBranchName() != null ? configuration.getBranchName() : branchName)
                 .name(name)
                 .imageBase64(imageBase64)
                 .os(testRunOptions.getOs())
@@ -164,12 +176,7 @@ public class VisualRegressionTracker {
                 .header("Content-Type", "application/json;charset=UTF-8")
                 .uri(URI.create(url));
         HttpRequest request = getRequest(method, body, requestBuilder);
-        HttpResponse<String> response = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(Duration.ofSeconds(configuration.getHttpTimeoutInSeconds()))
-                .build()
-                .send(request, HttpResponse.BodyHandlers.ofString());
-        return response;
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     protected HttpRequest getRequest(METHOD method, HttpRequest.BodyPublisher body, HttpRequest.Builder requestBuilder) {
@@ -186,8 +193,20 @@ public class VisualRegressionTracker {
     protected <T> T handleResponse(HttpResponse<String> response, Class<T> classOfT) {
         String responseBody = response.body();
         if (!String.valueOf(response.statusCode()).startsWith("2")) {
-            throw new TestRunException(responseBody);
+            throw new TestRunException(response.statusCode(), serverMessage(responseBody));
         }
         return gson.fromJson(responseBody, classOfT);
+    }
+
+    private String serverMessage(String responseBody) {
+        try {
+            ErrorResponse error = gson.fromJson(responseBody, ErrorResponse.class);
+            if (error != null && error.getMessage() != null) {
+                return error.getMessage();
+            }
+        } catch (JsonSyntaxException ignored) {
+            // not the server's JSON error body, e.g. an HTML page from a proxy
+        }
+        return responseBody;
     }
 }

@@ -1,17 +1,19 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/79dcd96f2be04992bc1059cad60e2e04)](https://www.codacy.com/gh/Visual-Regression-Tracker/sdk-java?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Visual-Regression-Tracker/sdk-java&amp;utm_campaign=Badge_Grade)
 
+Requires Java 11 or later.
+
 ## Gradle
 
-```yml
+```groovy
 repositories {
     maven { url 'https://jitpack.io' }
 }
 ```
 
-```yml
+```groovy
 dependencies {
-    implementation group: 'com.github.visual-regression-tracker', name: 'sdk-java', version: '${REPLACE_THIS_VALUE}'
+    implementation 'com.github.Visual-Regression-Tracker:sdk-java:5.5.0'
 }
 ```
 
@@ -30,7 +32,7 @@ dependencies {
 <dependency>
     <groupId>com.github.Visual-Regression-Tracker</groupId>
     <artifactId>sdk-java</artifactId>
-    <version>${REPLACE_THIS_VALUE}</version>
+    <version>5.5.0</version>
 </dependency>
 ```
 [Available versions](https://github.com/Visual-Regression-Tracker/sdk-java/releases)
@@ -45,10 +47,10 @@ In order to initialize VisualRegressionTracker, following options should be defi
 * `apiUrl` (**Required**) - URL where backend is running. _Example_: "http://localhost:4200"
 * `project` (**Required**) - Project name or ID. _Example_: "003f5fcf-6c5f-4f1f-a99f-82a697711382"
 * `apiKey` (**Required**) - User apiKey. _Example_: "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD"
-* `branch` (Optional) - Current git branch. _Example_: "develop"
+* `branchName` (Optional) - Current git branch. _Example_: "develop". If not set, the build gets the project's main branch and tracked images use the build's branch
 * `enableSoftAssert` (Optional) - Log errors instead of exceptions. Default value is false
 * `ciBuildId` (Optional) - id of the build in CI system
-* `httpTimeoutInSeconds` (Optional) - define http socket timeout in seconds. Default value is 10 seconds
+* `httpTimeoutInSeconds` (Optional) - how long to wait for each server response, in seconds. Default value is 360 seconds, because the server compares images while handling the request. Connecting has its own 10 second limit
 
  There are a few ways to provide those options
 
@@ -87,16 +89,17 @@ export VRT_HTTPTIMEOUTINSECONDS=15
 
 <details>
 
-<summary>Create vrt.json file in the root of the project</summary>
+<summary>Create vrt.json file in the working directory</summary>
 
 ```json
 {
-  "apiUrl": "[http://162.243.161.172:4200](http://localhost:4200)",
+  "apiUrl": "http://localhost:4200",
   "project": "003f5fcf-6c5f-4f1f-a99f-82a697711382",
   "apiKey": "F5Z2H0H2SNMXZVHX0EA4YQM1MGDD",
   "branchName": "develop",
   "enableSoftAssert": false,
-  "ciBuildId": "40bdba4"
+  "ciBuildId": "40bdba4",
+  "httpTimeoutInSeconds": 15
 }
 
 ```
@@ -173,6 +176,8 @@ visualRegressionTracker.track(
             .build()
 );
 ```
+
+`track` throws `TestRunException` when there is no baseline (`NEW`) or a difference is found (`UNRESOLVED`), unless `enableSoftAssert` is on. A status the SDK does not know comes back as `UNKNOWN`, which is logged as a warning and never fails `track`. When the server rejects a request, `TestRunException.getStatusCode()` holds the HTTP status, and the message reads `Request failed with status <code>: <server's message>`.
 
 
 ### Stop `VisualRegressionTracker`

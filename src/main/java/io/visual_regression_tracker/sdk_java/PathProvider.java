@@ -7,6 +7,7 @@ public class PathProvider {
 
     private static final String BUILD_PATH = "/builds";
     private static final String TEST_RUNS_PATH = "/test-runs";
+    private static final String IMAGES_PATH = "/images/";
 
     private final String baseApiUrl;
 
@@ -26,6 +27,6 @@ public class PathProvider {
         if(name == null || name.isEmpty()){
             return null;
         }
-        return baseApiUrl.concat("/").concat(name);
+        return baseApiUrl.concat(IMAGES_PATH).concat(name);
     }
 }

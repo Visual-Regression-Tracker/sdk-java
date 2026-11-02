@@ -4,5 +4,6 @@
   "apiKey": "SECRET",
   "branchName": "master",
   "enableSoftAssert": false,
-  "ciBuildId": "SOME_UNIQUE_ID"
+  "ciBuildId": "SOME_UNIQUE_ID",
+  "httpTimeoutInSeconds": 15
 }

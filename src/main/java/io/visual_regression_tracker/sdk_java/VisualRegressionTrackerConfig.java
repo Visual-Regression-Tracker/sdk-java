@@ -1,7 +1,7 @@
 package io.visual_regression_tracker.sdk_java;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Data()
 @RequiredArgsConstructor
@@ -32,8 +33,8 @@ public class VisualRegressionTrackerConfig {
 
     private String branchName;
     private String ciBuildId;
-    private Boolean enableSoftAssert;
-    private int httpTimeoutInSeconds;
+    private Boolean enableSoftAssert = false;
+    private int httpTimeoutInSeconds = 360;
 
     public static VisualRegressionTrackerConfigBuilder builder() {
         return new VisualRegressionTrackerConfigBuilder();
@@ -52,8 +53,6 @@ public class VisualRegressionTrackerConfig {
         private File configFile;
 
         private static final String VRT_ENV_VARIABLE_PREFIX = "VRT_";
-        private static final boolean DEFAULT_SOFT_ASSERTION_STATE = false;
-        private static final int DEFAULT_HTTP_TIMEOUT_SECONDS = 10;
 
         public VisualRegressionTrackerConfigBuilder apiUrl(String apiUrl) {
             this.apiUrl = apiUrl;
@@ -96,7 +95,7 @@ public class VisualRegressionTrackerConfig {
         }
 
         public VisualRegressionTrackerConfig build() {
-            Map<String, Object> configFromFile = Collections.emptyMap();
+            Map<String, String> configFromFile = Collections.emptyMap();
             if (configFile != null) {
                 configFromFile = readConfigFromFile(configFile);
             }
@@ -110,15 +109,19 @@ public class VisualRegressionTrackerConfig {
             config.setBranchName(resolve("branchName", configFromFile));
 
             Boolean actualEnableSoftAssert = resolve("enableSoftAssert", configFromFile);
-            config.setEnableSoftAssert(actualEnableSoftAssert == null ? DEFAULT_SOFT_ASSERTION_STATE : actualEnableSoftAssert);
+            if (actualEnableSoftAssert != null) {
+                config.setEnableSoftAssert(actualEnableSoftAssert);
+            }
 
             Integer actualHttpTimeoutInSeconds = resolve("httpTimeoutInSeconds", configFromFile);
-            config.setHttpTimeoutInSeconds(actualHttpTimeoutInSeconds == null ? DEFAULT_HTTP_TIMEOUT_SECONDS : actualHttpTimeoutInSeconds);
+            if (actualHttpTimeoutInSeconds != null) {
+                config.setHttpTimeoutInSeconds(actualHttpTimeoutInSeconds);
+            }
 
             return config;
         }
 
-        private Map<String, Object> readConfigFromFile(File configFile) {
+        private Map<String, String> readConfigFromFile(File configFile) {
             if (!configFile.exists()) {
                 throw new IllegalArgumentException("File " + configFile + " doesn't exist");
             }
@@ -129,12 +132,17 @@ public class VisualRegressionTrackerConfig {
             } catch (IOException e) {
                 throw new IllegalArgumentException("Can't read content of provided config file", e);
             }
-            Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
-            return new Gson().fromJson(fileContent, mapType);
+            JsonElement json = JsonParser.parseString(fileContent);
+            if (!json.isJsonObject()) {
+                return Collections.emptyMap();
+            }
+            return json.getAsJsonObject().entrySet().stream()
+                    .filter(entry -> entry.getValue().isJsonPrimitive())
+                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getAsString()));
         }
 
         @SneakyThrows
-        private <T> T resolve(String propertyName, Map<String, Object> configurationFromFile) {
+        private <T> T resolve(String propertyName, Map<String, String> configurationFromFile) {
             // 1. check if it was initialized explicitly in builder
             // 2. check if env variable exists
             // 3. try to read from file as last resort
@@ -148,15 +156,23 @@ public class VisualRegressionTrackerConfig {
             propertyValue = System.getenv(environmentVariableName);
             if (propertyValue != null) {
                 log.debug("Value of '{}' resolved from environment variable {}", propertyName, environmentVariableName);
-                Function<String, ?> parser = findParser(field.getType());
-                return (T) parser.apply((String)propertyValue);
+                return parse(field, (String) propertyValue);
             }
 
             propertyValue = configurationFromFile.get(propertyName);
             if (propertyValue != null) {
                 log.debug("Value of '{}' resolved from config file", propertyName);
+                return parse(field, (String) propertyValue);
             }
-            return propertyValue == null ? null : (T) propertyValue;
+            return null;
+        }
+
+        private <T> T parse(Field field, String value) {
+            try {
+                return (T) findParser(field.getType()).apply(value);
+            } catch (NumberFormatException | ArithmeticException e) {
+                throw new IllegalArgumentException("Invalid value for '" + field.getName() + "': " + value, e);
+            }
         }
 
         private Function<String, ?> findParser(Class<?> cls) {
@@ -164,7 +180,7 @@ public class VisualRegressionTrackerConfig {
                 return Boolean::parseBoolean;
             }
             if (cls.equals(Integer.class)) {
-                return Integer::parseInt;
+                return value -> new BigDecimal(value).intValueExact();
             }
             return String::valueOf;
         }

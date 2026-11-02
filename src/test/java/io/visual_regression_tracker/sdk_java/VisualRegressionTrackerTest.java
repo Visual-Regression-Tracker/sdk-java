@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.testng.Assert.expectThrows;
 
 public class VisualRegressionTrackerTest {
 
@@ -314,9 +317,9 @@ public class VisualRegressionTrackerTest {
         TestRunResult testRunResult = vrtMocked.track("name", "image", TestRunOptions.builder().build());
 
         assertThat(testRunResult.getTestRunResponse(), is(testRunResponse));
-        assertThat(testRunResult.getImageUrl(), is("http://localhost:4200/".concat(testRunResponse.getImageName())));
-        assertThat(testRunResult.getDiffUrl(), is("http://localhost:4200/".concat(testRunResponse.getDiffName())));
-        assertThat(testRunResult.getBaselineUrl(), is("http://localhost:4200/".concat(testRunResponse.getBaselineName())));
+        assertThat(testRunResult.getImageUrl(), is("http://localhost:4200/images/".concat(testRunResponse.getImageName())));
+        assertThat(testRunResult.getDiffUrl(), is("http://localhost:4200/images/".concat(testRunResponse.getDiffName())));
+        assertThat(testRunResult.getBaselineUrl(), is("http://localhost:4200/images/".concat(testRunResponse.getBaselineName())));
     }
 
     @Test()
@@ -347,24 +350,91 @@ public class VisualRegressionTrackerTest {
         assertThat(result, is(expectedResult));
     }
 
+    @DataProvider(name = "httpErrorCases")
+    public Object[][] httpErrorCases() {
+        return new Object[][]{
+                {404, "{\"statusCode\":404,\"path\":\"/builds\",\"name\":\"NotFoundException\",\"message\":\"Project not found\"}",
+                        "Request failed with status 404: Project not found"},
+                {413, "{\"statusCode\":413,\"path\":\"/test-runs\",\"name\":\"PayloadTooLargeError\",\"message\":\"request entity too large\"}",
+                        "Request failed with status 413: request entity too large. " + TestRunException.PAYLOAD_TOO_LARGE_HINT},
+                {422, "{\"statusCode\":422,\"path\":\"/test-runs\",\"name\":\"ImageTooLargeException\",\"message\":\"Image is too large\"}",
+                        "Request failed with status 422: Image is too large. " + TestRunException.IMAGE_TOO_LARGE_HINT},
+                {502, "<html>Bad Gateway</html>", "Request failed with status 502: <html>Bad Gateway</html>"},
+                {502, "", "Request failed with status 502"},
+                {504, " \n", "Request failed with status 504"},
+        };
+    }
+
+    @Test(dataProvider = "httpErrorCases")
+    public void handleResponseShouldThrowWithStatusAndServerMessage(int statusCode, String body, String expectedMessage) {
+        HttpResponse<String> response = new MockHttpClient(statusCode, body).send(null, null);
+
+        TestRunException exception = expectThrows(TestRunException.class, () -> vrt.handleResponse(response, Object.class));
+
+        assertThat(exception.getStatusCode(), is(statusCode));
+        assertThat(exception.getMessage(), is(expectedMessage));
+    }
+
     @Test
-    public void handleRequestShouldThrowIfNotSuccess() throws IOException {
-        String error = "{\n" +
-                "  \"statusCode\": 404,\n" +
-                "  \"message\": \"Project not found\"\n" +
-                "}";
+    public void trackShouldSendBranchNameOfBuildWhenNoneConfigured() throws IOException, InterruptedException {
+        vrt = new VisualRegressionTracker(new VisualRegressionTrackerConfig(
+                mockWebServer.url("/").toString(), "key", "project", null, null, false, HTTP_TIMEOUT));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .branchName("main")
+                .build())));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+                .status(TestRunStatus.OK)
+                .build())));
 
-        String exceptionMessage = "";
-        try {
-            //A mock client is needed to create a mock response
-            HttpClient httpClient = new MockHttpClient(404, error);
-            HttpResponse httpResponse = httpClient.send(null, null);
-            vrt.handleResponse(httpResponse, Object.class);
-        } catch (TestRunException | InterruptedException ex) {
-            exceptionMessage = ex.getMessage();
-        }
+        vrt.start();
+        vrt.track(NAME, IMAGE_BASE_64);
 
-        assertThat(exceptionMessage, is(error));
+        mockWebServer.takeRequest();
+        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
+        assertThat(sent.getBranchName(), is("main"));
+    }
+
+    @Test
+    public void trackShouldSendConfiguredBranchNameOverBuildBranch() throws IOException, InterruptedException {
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(BuildResponse.builder()
+                .id(BUILD_ID)
+                .projectId(PROJECT_ID)
+                .branchName("main")
+                .build())));
+        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+                .status(TestRunStatus.OK)
+                .build())));
+
+        vrt.start();
+        vrt.track(NAME, IMAGE_BASE_64);
+
+        mockWebServer.takeRequest();
+        TestRunRequest sent = gson.fromJson(mockWebServer.takeRequest().getBody().readUtf8(), TestRunRequest.class);
+        assertThat(sent.getBranchName(), is("develop"));
+    }
+
+    @Test
+    public void shouldConnectWithTenSecondTimeout() {
+        assertThat(vrt.httpClient.connectTimeout(), is(Optional.of(Duration.ofSeconds(10))));
+    }
+
+    @Test
+    public void trackShouldReturnUnknownForStatusItDoesNotKnow() throws IOException, InterruptedException {
+        vrt.buildId = BUILD_ID;
+        vrt.projectId = PROJECT_ID;
+        mockWebServer.enqueue(new MockResponse().setBody("{\"status\":\"someFutureStatus\",\"url\":\"https://someurl.com/test/1\"}"));
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.start();
+        ((Logger) LoggerFactory.getLogger(VisualRegressionTracker.class)).addAppender(listAppender);
+
+        TestRunResult result = vrt.track(NAME, IMAGE_BASE_64);
+
+        assertThat(result.getTestRunResponse().getStatus(), is(TestRunStatus.UNKNOWN));
+        ILoggingEvent warning = listAppender.list.get(listAppender.list.size() - 1);
+        assertThat(warning.getLevel(), is(Level.WARN));
+        assertThat(warning.getFormattedMessage(), is("Unknown status of test run: https://someurl.com/test/1"));
     }
 
     @Test

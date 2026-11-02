@@ -17,4 +17,8 @@ public class TestRunResponse {
     private final Boolean merge;
     private final String url;
     private final TestRunStatus status;
+
+    public TestRunStatus getStatus() {
+        return status == null ? TestRunStatus.UNKNOWN : status;
+    }
 }
