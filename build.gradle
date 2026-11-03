@@ -42,6 +42,7 @@ dependencies {
 test {
     useTestNG()
     def agent = configurations.mockitoAgent
+    jvmArgs '-XX:+EnableDynamicAgentLoading'
     jvmArgumentProviders.add({ ["-javaagent:${agent.singleFile}".toString()] } as CommandLineArgumentProvider)
     finalizedBy jacocoTestReport
 }
