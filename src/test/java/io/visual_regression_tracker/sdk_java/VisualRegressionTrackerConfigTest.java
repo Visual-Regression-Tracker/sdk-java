@@ -1,11 +1,13 @@
 package io.visual_regression_tracker.sdk_java;
 
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -173,6 +175,27 @@ public class VisualRegressionTrackerConfigTest {
         assertThat(config.getBranchName(), is("develop"));
         assertThat(config.getHttpTimeoutInSeconds(), is(15));
         assertThat(config.getSourceBranch(), is((String) null));
+    }
+
+    @DataProvider(name = "apiUrlSources")
+    public Object[][] apiUrlSources() {
+        return new Object[][]{
+                {(Callable<VisualRegressionTrackerConfig>) () ->
+                        new VisualRegressionTrackerConfig("http://localhost:4200/", "KEY", "PROJECT")},
+                {(Callable<VisualRegressionTrackerConfig>) () -> VisualRegressionTrackerConfig.builder()
+                        .apiUrl("http://localhost:4200//").apiKey("KEY").project("PROJECT").build()},
+                {(Callable<VisualRegressionTrackerConfig>) () -> new EnvironmentVariables("VRT_APIURL", "http://localhost:4200/")
+                        .set("VRT_APIKEY", "KEY").set("VRT_PROJECT", "PROJECT")
+                        .execute(() -> VisualRegressionTrackerConfig.builder().build())},
+                {(Callable<VisualRegressionTrackerConfig>) () -> VisualRegressionTrackerConfig.builder()
+                        .configFile(configFile("{\"apiUrl\": \"http://localhost:4200/\", \"apiKey\": \"KEY\", \"project\": \"PROJECT\"}"))
+                        .build()},
+        };
+    }
+
+    @Test(dataProvider = "apiUrlSources")
+    public void shouldStripTrailingSlashesFromApiUrl(Callable<VisualRegressionTrackerConfig> source) throws Exception {
+        assertThat(source.call().getApiUrl(), is("http://localhost:4200"));
     }
 
     private File configFile(String content) throws Exception {

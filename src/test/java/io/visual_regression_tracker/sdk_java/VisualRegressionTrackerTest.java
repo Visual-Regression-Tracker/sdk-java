@@ -104,6 +104,7 @@ public class VisualRegressionTrackerTest {
         BuildResponse result = vrt.start();
 
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        assertThat(recordedRequest.getPath(), is("/builds"));
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.API_KEY_HEADER), is(config.getApiKey()));
         assertThat(recordedRequest.getHeader(VisualRegressionTracker.PROJECT_HEADER), is(config.getProject()));
         assertThat(recordedRequest.getBody().readUtf8(), is(gson.toJson(buildRequest)));
