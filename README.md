@@ -181,6 +181,14 @@ JitPack builds the SDK from a git tag; there is nothing to upload.
 
 JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command on Java 25 for every pull request.
 
+### Release candidates
+
+Breaking changes for the next major go into `next` through pull requests against it. Merge `master` into `next` when `master` gets new commits.
+
+To release a candidate, make sure `next` is green, then `gh release create X.Y.Z-rc.N --target next --prerelease --notes-file <notes>` (for example `6.0.0-rc.1`) tags `next` and creates the pre-release; then start the JitPack build as in step 4. Projects get it only by asking for that exact version.
+
+To release the final version, merge `next` into `master` with a merge commit, then tag `master` as above. The repository deletes merged branches, so create `next` again from `master` before the next round of candidates.
+
 ## Links
 
 - [Java examples](https://github.com/Visual-Regression-Tracker/examples-java)
