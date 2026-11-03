@@ -43,6 +43,10 @@ public class VisualRegressionTrackerConfig {
         this(apiUrl, apiKey, project, branchName, ciBuildId, enableSoftAssert, httpTimeoutInSeconds, null);
     }
 
+    public String getApiUrl() {
+        return apiUrl.replaceAll("/+$", "");
+    }
+
     public static VisualRegressionTrackerConfigBuilder builder() {
         return new VisualRegressionTrackerConfigBuilder();
     }
