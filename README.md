@@ -1,6 +1,6 @@
 # Java SDK for [Visual Regression Tracker](https://github.com/Visual-Regression-Tracker/Visual-Regression-Tracker)
 
-Track screenshots from Java tests in a Visual Regression Tracker server. Requires Java 17 or later. Built and tested against VRT server 6.0; image URLs need server 5.0.10 or later.
+Track screenshots from Java tests in a Visual Regression Tracker server. Requires Java 25 or later. Built and tested against VRT server 6.0; image URLs need server 5.0.10 or later.
 
 ## Install
 
@@ -40,7 +40,7 @@ The SDK logs through SLF4J 2. Add a provider such as `logback-classic` to see it
 
 ### Upgrading to 6.0
 
-- Java 17 or later is required.
+- Java 25 or later is required.
 - SLF4J 1.7 bindings are not picked up; use an SLF4J 2 provider (logback 1.3+, `log4j-slf4j2-impl`).
 - The API is unchanged. A call that passes a literal `null` or a bare Mockito `any()` as the image is now ambiguous between the `String`, `byte[]` and `Path` overloads of `track`; use `any(String.class)`.
 
@@ -48,7 +48,7 @@ The SDK logs through SLF4J 2. Add a provider such as `logback-classic` to see it
 
 | Option | Environment variable | Required | Description |
 |---|---|---|---|
-| `apiUrl` | `VRT_APIURL` | yes | URL of the VRT API, for example `http://localhost:4200` |
+| `apiUrl` | `VRT_APIURL` | yes | URL of the VRT API, for example `http://localhost:4200`; trailing slashes are ignored |
 | `apiKey` | `VRT_APIKEY` | yes | API key of a VRT user |
 | `project` | `VRT_PROJECT` | yes | Project name or ID |
 | `branchName` | `VRT_BRANCHNAME` | no | Branch of the build. If not set, the build gets the project's main branch |
@@ -179,7 +179,7 @@ JitPack builds the SDK from a git tag; there is nothing to upload.
 3. Create a GitHub release for the tag with the release notes.
 4. Open `https://jitpack.io/#Visual-Regression-Tracker/sdk-java/<version>` to start the build, and check that its log ends with the artifact list.
 
-JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command on Java 17 for every pull request.
+JitPack runs `./gradlew clean -Pgroup=com.github.Visual-Regression-Tracker -Pversion=<tag> -xtest assemble publishToMavenLocal` on the JDK from `jitpack.yml`, so the artifact version is always the tag. `version` in `gradle.properties` is only the default for local builds. CI runs the same command on Java 25 for every pull request.
 
 ## Links
 
