@@ -57,6 +57,16 @@ publishing {
     publications {
         maven(MavenPublication) {
             from components.java
+            pom {
+                name = 'Visual Regression Tracker Java SDK'
+                url = 'https://github.com/Visual-Regression-Tracker/sdk-java'
+                licenses {
+                    license {
+                        name = 'Apache-2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+            }
         }
     }
 }
