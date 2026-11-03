@@ -14,7 +14,7 @@ java {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
+    options.release = 25
     options.encoding = 'UTF-8'
 }
 
@@ -42,6 +42,7 @@ dependencies {
 test {
     useTestNG()
     def agent = configurations.mockitoAgent
+    jvmArgs '-XX:+EnableDynamicAgentLoading'
     jvmArgumentProviders.add({ ["-javaagent:${agent.singleFile}".toString()] } as CommandLineArgumentProvider)
     finalizedBy jacocoTestReport
 }
