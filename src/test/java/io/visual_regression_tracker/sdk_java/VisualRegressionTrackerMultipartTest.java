@@ -3,9 +3,9 @@ package io.visual_regression_tracker.sdk_java;
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.response.TestRunResponse;
 import lombok.SneakyThrows;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
+import mockwebserver3.RecordedRequest;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -48,7 +48,7 @@ public class VisualRegressionTrackerMultipartTest {
     @SneakyThrows
     @AfterMethod
     public void tearDown() {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
@@ -69,12 +69,12 @@ public class VisualRegressionTrackerMultipartTest {
                 .build());
 
         RecordedRequest request = mockWebServer.takeRequest();
-        String body = request.getBody().readUtf8();
+        String body = request.getBody().utf8();
         assertThat(request.getMethod(), is("POST"));
-        assertThat(request.getPath(), endsWith("/test-runs/multipart"));
-        assertThat(request.getHeader("Content-Type"), startsWith("multipart/form-data; boundary="));
-        assertThat(request.getHeader("Content-Length"), is(String.valueOf(request.getBodySize())));
-        assertThat(request.getHeader(VisualRegressionTracker.API_KEY_HEADER), is("key"));
+        assertThat(request.getUrl().encodedPath(), endsWith("/test-runs/multipart"));
+        assertThat(request.getHeaders().get("Content-Type"), startsWith("multipart/form-data; boundary="));
+        assertThat(request.getHeaders().get("Content-Length"), is(String.valueOf(request.getBodySize())));
+        assertThat(request.getHeaders().get(VisualRegressionTracker.API_KEY_HEADER), is("key"));
         assertThat(body, containsString(field("projectId", PROJECT_ID)));
         assertThat(body, containsString(field("buildId", BUILD_ID)));
         assertThat(body, containsString(field("name", "Home page")));
@@ -99,7 +99,7 @@ public class VisualRegressionTrackerMultipartTest {
 
         vrt.track("Home page", IMAGE);
 
-        String body = mockWebServer.takeRequest().getBody().readUtf8();
+        String body = mockWebServer.takeRequest().getBody().utf8();
         assertThat(body, not(containsString("name=\"os\"")));
         assertThat(body, not(containsString("name=\"comment\"")));
         assertThat(body, not(containsString("name=\"merge\"")));
@@ -115,16 +115,16 @@ public class VisualRegressionTrackerMultipartTest {
         vrt.track("Home page", screenshot);
 
         RecordedRequest request = mockWebServer.takeRequest();
-        assertThat(request.getPath(), endsWith("/test-runs/multipart"));
-        assertThat(request.getBody().readUtf8(), containsString(image("home.png", "PNG bytes")));
+        assertThat(request.getUrl().encodedPath(), endsWith("/test-runs/multipart"));
+        assertThat(request.getBody().utf8(), containsString(image("home.png", "PNG bytes")));
     }
 
     @Test
     public void trackBytesShouldFailOnDifferenceLikeBase64() {
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder()
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(TestRunResponse.builder()
                 .status(TestRunStatus.UNRESOLVED)
                 .url("http://localhost:8080/test/1")
-                .build())));
+                .build())).build());
 
         TestRunException exception = expectThrows(TestRunException.class, () -> vrt.track("Home page", IMAGE));
 
@@ -133,7 +133,7 @@ public class VisualRegressionTrackerMultipartTest {
 
     @Test
     public void payloadTooLargeOnMultipartShouldPointAtTheMultipartLimit() {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(413).setBody("{\"message\":\"File too large\"}"));
+        mockWebServer.enqueue(new MockResponse.Builder().code(413).body("{\"message\":\"File too large\"}").build());
 
         TestRunException exception = expectThrows(TestRunException.class, () -> vrt.track("Home page", IMAGE));
 
@@ -144,7 +144,7 @@ public class VisualRegressionTrackerMultipartTest {
 
     @Test
     public void payloadTooLargeOnBase64ShouldSuggestMultipart() {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(413).setBody("{\"message\":\"request entity too large\"}"));
+        mockWebServer.enqueue(new MockResponse.Builder().code(413).body("{\"message\":\"request entity too large\"}").build());
 
         TestRunException exception = expectThrows(TestRunException.class, () -> vrt.track("Home page", "aW1hZ2U="));
 
@@ -153,7 +153,7 @@ public class VisualRegressionTrackerMultipartTest {
     }
 
     private void enqueueStatus(TestRunStatus status) {
-        mockWebServer.enqueue(new MockResponse().setBody(gson.toJson(TestRunResponse.builder().status(status).build())));
+        mockWebServer.enqueue(new MockResponse.Builder().body(gson.toJson(TestRunResponse.builder().status(status).build())).build());
     }
 
     private static String field(String name, String value) {

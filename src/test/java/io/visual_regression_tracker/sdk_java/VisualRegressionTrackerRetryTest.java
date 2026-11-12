@@ -3,8 +3,8 @@ package io.visual_regression_tracker.sdk_java;
 import com.google.gson.Gson;
 import io.visual_regression_tracker.sdk_java.response.BuildResponse;
 import lombok.SneakyThrows;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
+import mockwebserver3.MockResponse;
+import mockwebserver3.MockWebServer;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -42,7 +42,7 @@ public class VisualRegressionTrackerRetryTest {
     @SneakyThrows
     @AfterMethod
     public void tearDown() {
-        mockWebServer.shutdown();
+        mockWebServer.close();
     }
 
     @Test
@@ -81,7 +81,7 @@ public class VisualRegressionTrackerRetryTest {
 
     @Test
     public void shouldNotRetryServiceUnavailableWithoutRetryAfter() {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(503).setBody("{\"message\":\"Directory service is not available.\"}"));
+        mockWebServer.enqueue(new MockResponse.Builder().code(503).body("{\"message\":\"Directory service is not available.\"}").build());
         mockWebServer.enqueue(started());
 
         TestRunException exception = expectThrows(TestRunException.class, () -> vrt.start());
@@ -92,7 +92,7 @@ public class VisualRegressionTrackerRetryTest {
 
     @Test
     public void shouldNotRetryOtherErrorsWithRetryAfter() {
-        mockWebServer.enqueue(new MockResponse().setResponseCode(429).setHeader("Retry-After", "0"));
+        mockWebServer.enqueue(new MockResponse.Builder().code(429).setHeader("Retry-After", "0").build());
         mockWebServer.enqueue(started());
 
         expectThrows(TestRunException.class, () -> vrt.start());
@@ -112,13 +112,14 @@ public class VisualRegressionTrackerRetryTest {
     }
 
     private static MockResponse busy(String retryAfter) {
-        return new MockResponse()
-                .setResponseCode(503)
+        return new MockResponse.Builder()
+                .code(503)
                 .setHeader("Retry-After", retryAfter)
-                .setBody("{\"message\":\"Image diff queue is full (100 jobs)\"}");
+                .body("{\"message\":\"Image diff queue is full (100 jobs)\"}")
+                .build();
     }
 
     private MockResponse started() {
-        return new MockResponse().setBody(gson.toJson(BuildResponse.builder().id("buildId").projectId("projectId").build()));
+        return new MockResponse.Builder().body(gson.toJson(BuildResponse.builder().id("buildId").projectId("projectId").build())).build();
     }
 }
